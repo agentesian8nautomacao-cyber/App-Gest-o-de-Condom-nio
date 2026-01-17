@@ -219,7 +219,10 @@ ${voiceSettings.style === 'serious'
       // Limpar qualquer mensagem de erro anterior
       setMessages(prev => prev.filter(m => !m.text.includes('⚠️ Erro')));
     } catch (error: any) {
-      console.error('Error in handleSendMessage:', error);
+      // Não logar erros de quota (429) no console - já estão sendo tratados e mostrados ao usuário
+      if (!(error?.error?.code === 429) && !(error?.code === 429) && !(error?.status === 'RESOURCE_EXHAUSTED')) {
+        console.error('Error in handleSendMessage:', error);
+      }
       
       const errorInfo = handleApiError(error, retryCount);
       

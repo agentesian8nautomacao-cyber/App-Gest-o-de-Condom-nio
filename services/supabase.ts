@@ -53,18 +53,34 @@ export const supabase = createClient(
     }
 );
 
-// Silenciar erros de WebSocket do Supabase que são comuns em desenvolvimento
-// e não afetam a funcionalidade principal da aplicação
+// Silenciar erros de WebSocket do Supabase que são comuns e não afetam a funcionalidade
+// Esses erros aparecem quando o Realtime não está configurado ou há problemas de conexão
 if (typeof window !== 'undefined') {
     const originalError = console.error;
     console.error = (...args: any[]) => {
-        const message = args[0]?.toString() || '';
-        // Filtrar apenas erros de WebSocket do Supabase Realtime (não críticos)
-        // Erros de API REST ainda serão logados normalmente
-        if (message.includes('WebSocket connection') && 
-            message.includes('supabase.co') && 
-            message.includes('realtime')) {
-            // Não logar - são erros esperados quando Realtime não está configurado
+        // Verificar todos os argumentos para encontrar mensagens de WebSocket
+        const allMessages = args.map(arg => {
+            if (typeof arg === 'string') return arg;
+            if (arg?.toString) return arg.toString();
+            if (arg?.message) return arg.message;
+            if (arg?.stack) return arg.stack;
+            try {
+                return JSON.stringify(arg);
+            } catch {
+                return String(arg);
+            }
+        }).join(' ').toLowerCase();
+
+        // Filtrar erros de WebSocket do Supabase Realtime (casos comuns)
+        const isWebSocketError = 
+            allMessages.includes('websocket connection') || 
+            (allMessages.includes('wss://') && allMessages.includes('supabase.co')) ||
+            allMessages.includes('createwebsocket') ||
+            (allMessages.includes('websocket') && allMessages.includes('failed') && allMessages.includes('supabase')) ||
+            (allMessages.includes('realtime') && allMessages.includes('websocket'));
+
+        if (isWebSocketError) {
+            // Não logar - são erros esperados e não críticos quando Realtime não está configurado
             return;
         }
         originalError.apply(console, args);

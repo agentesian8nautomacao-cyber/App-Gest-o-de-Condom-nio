@@ -196,7 +196,10 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
         toast.success('Relatório gerado com sucesso após retry!');
       }
     } catch (error: any) {
-      console.error('Error in handleGenerateReport:', error);
+      // Não logar erros de quota (429) no console - já estão sendo tratados e mostrados ao usuário
+      if (!(error?.error?.code === 429) && !(error?.code === 429) && !(error?.status === 'RESOURCE_EXHAUSTED')) {
+        console.error('Error in handleGenerateReport:', error);
+      }
       
       // Parse do erro se for uma string JSON ou objeto serializado
       let parsedError = error;
