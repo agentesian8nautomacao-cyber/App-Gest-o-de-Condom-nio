@@ -37,7 +37,6 @@ export const supabase = createClient(
             },
             heartbeatIntervalMs: 30000,
             reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000),
-            transport: 'websocket',
             timeout: 20000
         },
         auth: {
