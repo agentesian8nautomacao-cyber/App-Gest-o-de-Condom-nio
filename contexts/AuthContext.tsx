@@ -44,14 +44,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setRole(parsed.role);
             
             // Fetch user role from database to ensure it's still valid
-            const { data } = await supabase
-              .from('users')
-              .select('role')
-              .eq('username', parsed.user.user_metadata?.username || '')
-              .single();
+            const username = parsed.user.user_metadata?.username;
+            if (username && username.trim() !== '') {
+              try {
+                const { data, error } = await supabase
+                  .from('users')
+                  .select('role')
+                  .eq('username', username.trim())
+                  .maybeSingle();
 
-            if (data) {
-              setRole(data.role as UserRole);
+                if (data && !error) {
+                  setRole(data.role as UserRole);
+                } else if (error && error.code !== 'PGRST116') {
+                  // PGRST116 é "not found", que é aceitável
+                  console.warn('Aviso ao buscar role do usuário:', error.message);
+                }
+              } catch (err) {
+                console.warn('Erro ao buscar role do usuário:', err);
+                // Usar role do localStorage como fallback
+              }
             }
           }
         }

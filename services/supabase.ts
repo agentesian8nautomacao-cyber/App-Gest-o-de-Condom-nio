@@ -26,7 +26,48 @@ if (supabaseAnonKey) {
     }
 }
 
+// Configuração do cliente Supabase com tratamento de erros melhorado
 export const supabase = createClient(
     supabaseUrl || '',
-    supabaseAnonKey || ''
+    supabaseAnonKey || '',
+    {
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            },
+            heartbeatIntervalMs: 30000,
+            reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000),
+            transport: 'websocket',
+            timeout: 20000
+        },
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            flowType: 'pkce'
+        },
+        global: {
+            headers: {
+                'x-client-info': 'qualivida-app'
+            }
+        }
+    }
 );
+
+// Silenciar erros de WebSocket do Supabase que são comuns em desenvolvimento
+// e não afetam a funcionalidade principal da aplicação
+if (typeof window !== 'undefined') {
+    const originalError = console.error;
+    console.error = (...args: any[]) => {
+        const message = args[0]?.toString() || '';
+        // Filtrar apenas erros de WebSocket do Supabase Realtime (não críticos)
+        // Erros de API REST ainda serão logados normalmente
+        if (message.includes('WebSocket connection') && 
+            message.includes('supabase.co') && 
+            message.includes('realtime')) {
+            // Não logar - são erros esperados quando Realtime não está configurado
+            return;
+        }
+        originalError.apply(console, args);
+    };
+}

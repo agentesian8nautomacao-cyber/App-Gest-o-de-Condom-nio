@@ -140,9 +140,21 @@ ${voiceSettings.style === 'serious'
   // Helper para tratar erros da API Gemini
   const handleApiError = (error: any, retryCount = 0): { shouldRetry: boolean; retryDelay?: number; message?: string } => {
     // Verificar se é erro 429 (quota exceeded)
-    if (error?.error?.code === 429 || error?.status === 'RESOURCE_EXHAUSTED') {
-      const retryDelay = error?.error?.details?.find((d: any) => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')?.retryDelay;
-      const delaySeconds = retryDelay ? parseInt(retryDelay) : 10;
+    const isQuotaError = error?.error?.code === 429 || 
+                        error?.code === 429 || 
+                        error?.status === 'RESOURCE_EXHAUSTED' ||
+                        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+                        (error?.error?.message && error.error.message.includes('exceeded your current quota'));
+    
+    if (isQuotaError) {
+      const details = error?.error?.details || error?.details || [];
+      const retryInfo = details.find((d: any) => 
+        d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' || 
+        d.retryDelay
+      );
+      
+      const retryDelay = retryInfo?.retryDelay || error?.error?.details?.find((d: any) => d.retryDelay)?.retryDelay;
+      const delaySeconds = retryDelay ? Math.ceil(parseFloat(String(retryDelay))) : 10;
       
       // Tentar retry automaticamente até 2 vezes
       if (retryCount < 2) {

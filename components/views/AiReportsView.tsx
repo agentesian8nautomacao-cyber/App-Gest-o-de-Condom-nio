@@ -80,7 +80,8 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
     const isQuotaError = error?.error?.code === 429 || 
                         error?.code === 429 || 
                         error?.status === 'RESOURCE_EXHAUSTED' ||
-                        error?.error?.status === 'RESOURCE_EXHAUSTED';
+                        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+                        (error?.error?.message && error.error.message.includes('exceeded your current quota'));
     
     if (isQuotaError) {
       const details = error?.error?.details || error?.details || [];
