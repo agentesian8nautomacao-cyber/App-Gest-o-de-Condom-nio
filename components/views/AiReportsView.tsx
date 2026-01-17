@@ -91,7 +91,7 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
       if (isModelQuotaIssue) {
         return {
           shouldRetry: false,
-          message: '⚠️ O modelo selecionado não está disponível no seu plano gratuito.\n\nO sistema já foi atualizado para usar um modelo compatível. Por favor, recarregue a página (F5) e tente novamente.\n\nSe o problema persistir, verifique seu plano do Google Gemini API:\n• https://ai.google.dev/pricing'
+          message: '⚠️ Quota do FreeTier excedida.\n\nO modelo gemini-2.0-flash-exp está sendo usado (compatível com FreeTier), mas a quota diária foi atingida.\n\nPara resolver:\n1. Aguarde algumas horas para o limite resetar\n2. Atualize para um plano pago no Google Cloud Console\n3. Verifique seu uso: https://ai.dev/rate-limit\n\nMais informações: https://ai.google.dev/pricing'
         };
       }
       
@@ -148,7 +148,18 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
     setReportContent(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        const errorMsg = '⚠️ Erro: Chave da API do Gemini não configurada. Verifique a variável de ambiente GEMINI_API_KEY no arquivo .env e reinicie o servidor.';
+        setReportContent(errorMsg);
+        setIsError(true);
+        toast.error('Chave da API não configurada. Verifique o arquivo .env');
+        setIsGenerating(false);
+        return;
+      }
+      
+      const ai = new GoogleGenAI({ apiKey });
       
       const dataContext = `
         DADOS DO PERÍODO:
