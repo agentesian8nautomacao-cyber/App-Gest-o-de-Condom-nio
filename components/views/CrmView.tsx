@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   LayoutGrid, 
   Kanban as KanbanIcon, 
@@ -17,38 +17,43 @@ import {
   Tag
 } from 'lucide-react';
 import { CrmUnit, CrmIssue, UnitStatus } from '../../types';
+import { useCrmUnits } from '../../hooks/useCrmUnits';
+import { useCrmIssues } from '../../hooks/useCrmIssues';
 
 const CrmView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'heatmap' | 'kanban'>('heatmap');
   const [selectedUnit, setSelectedUnit] = useState<CrmUnit | null>(null);
 
-  // MOCK DATA - HEATMAP (Unidades)
-  const mockUnits: CrmUnit[] = Array.from({ length: 20 }, (_, i) => {
-    const floorNum = Math.floor(i / 4) + 1;
-    const unitNum = `${floorNum}0${(i % 4) + 1}`;
-    let status: UnitStatus = 'calm';
-    if ([2, 7, 15].includes(i)) status = 'warning';
-    if ([5, 12].includes(i)) status = 'critical';
+  // Hooks do Supabase
+  const { units: crmUnits, loading: unitsLoading } = useCrmUnits();
+  const { issues: crmIssues, loading: issuesLoading, updateIssue } = useCrmIssues();
 
-    return {
-      id: `u-${i}`,
-      unit: unitNum,
-      floor: `${floorNum}º Andar`,
-      residentName: `Família ${['Silva', 'Souza', 'Oliveira', 'Lima'][i % 4]}`,
-      status,
-      tags: i % 3 === 0 ? ['#PetFriendly', '#HomeOffice'] : i % 2 === 0 ? ['#Idoso'] : ['#Festeiro'],
-      npsScore: status === 'calm' ? 95 : status === 'warning' ? 60 : 30,
-      lastIncident: status !== 'calm' ? 'Barulho excessivo após 22h' : undefined
-    };
-  });
+  // Processar unidades para o heatmap
+  const processedUnits = useMemo(() => {
+    // Se não houver unidades no banco, criar a partir dos residents
+    // Por enquanto, vamos usar os dados do banco ou criar unidades vazias
+    return crmUnits.map((unit: any) => ({
+      ...unit,
+      floor: unit.floor || `${unit.unit.substring(0, 1)}º Andar`,
+      residentName: unit.resident_name || unit.residentName || 'Vazio',
+      status: (unit.status || 'calm') as UnitStatus,
+      tags: unit.tags || [],
+      npsScore: unit.nps_score || unit.npsScore || 100,
+      lastIncident: unit.last_incident ? new Date(unit.last_incident).toLocaleDateString('pt-BR') : undefined
+    }));
+  }, [crmUnits]);
 
-  // MOCK DATA - KANBAN (Conflitos)
-  const [issues, setIssues] = useState<CrmIssue[]>([
-    { id: '1', title: 'Vazamento Apto 202 > 102', involvedUnits: ['202', '102'], severity: 'medium', status: 'mediation', description: 'Infiltração no teto do banheiro.', updatedAt: 'Há 2h' },
-    { id: '2', title: 'Cachorro bravo Bloco B', involvedUnits: ['304', '303'], severity: 'high', status: 'legal', description: 'Terceira reincidência de ataque no elevador.', updatedAt: 'Ontem' },
-    { id: '3', title: 'Barulho de Salto Alto', involvedUnits: ['501', '401'], severity: 'low', status: 'analysis', description: 'Reclamação recorrente de madrugada.', updatedAt: 'Hoje 08:00' },
-    { id: '4', title: 'Uso indevido da Academia', involvedUnits: ['101'], severity: 'low', status: 'resolved', description: 'Personal trainer sem cadastro.', updatedAt: 'Semana passada' },
-  ]);
+  // Se não houver unidades, criar estrutura básica a partir dos residents (isso pode ser feito em uma função separada)
+  // Por enquanto, vamos usar os dados que temos ou um array vazio
+  const displayUnits = processedUnits.length > 0 ? processedUnits : [];
+
+  // Processar issues
+  const displayIssues = useMemo(() => {
+    return crmIssues.map((issue: any) => ({
+      ...issue,
+      involvedUnits: issue.involved_units || issue.involvedUnits || []
+    }));
+  }, [crmIssues]);
 
   // INSIGHTS MOCK
   const insights = [
@@ -65,7 +70,15 @@ const CrmView: React.FC = () => {
     }
   };
 
-  const floors = [...new Set(mockUnits.map(u => u.floor))].reverse();
+  const floors = [...new Set(displayUnits.map(u => u.floor))].reverse();
+
+  // Função para mover issue entre colunas (drag and drop)
+  const handleMoveIssue = async (issueId: string, newStatus: 'analysis' | 'mediation' | 'legal' | 'resolved') => {
+    const result = await updateIssue(issueId, { status: newStatus });
+    if (result.error) {
+      console.error('Erro ao mover issue:', result.error);
+    }
+  };
 
   return (
     <div className="relative min-h-screen pb-20 animate-in fade-in duration-700">
@@ -99,19 +112,49 @@ const CrmView: React.FC = () => {
       </div>
 
       {/* AI INSIGHTS WIDGET */}
-      <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
-         {insights.map((ins, idx) => (
-            <div key={idx} className="premium-glass p-5 rounded-[24px] flex items-center gap-4 group hover:border-white/20 transition-all">
-               <div className={`p-3 rounded-full ${ins.type === 'warning' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                  <Sparkles className="w-4 h-4" />
+      {displayIssues.length > 0 && (
+         <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {displayIssues.filter(i => i.severity === 'high').slice(0, 1).map((issue) => (
+               <div key={issue.id} className="premium-glass p-5 rounded-[24px] flex items-center gap-4 group hover:border-white/20 transition-all border-amber-500/20">
+                  <div className="p-3 rounded-full bg-amber-500/10 text-amber-500">
+                     <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Alerta de Alta Prioridade</span>
+                     <p className="text-xs font-bold leading-tight mt-1">{issue.title}</p>
+                  </div>
                </div>
-               <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Sentinela Insight</span>
-                  <p className="text-xs font-bold leading-tight mt-1">{ins.text}</p>
+            ))}
+            {displayIssues.length > 3 && (
+               <div className="premium-glass p-5 rounded-[24px] flex items-center gap-4 group hover:border-white/20 transition-all border-blue-500/20">
+                  <div className="p-3 rounded-full bg-blue-500/10 text-blue-500">
+                     <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                     <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Sentinela Insight</span>
+                     <p className="text-xs font-bold leading-tight mt-1">Total de {displayIssues.length} conflitos em gestão. Requer atenção sistêmica.</p>
+                  </div>
                </div>
-            </div>
-         ))}
-      </div>
+            )}
+         </div>
+      )}
+      
+      {/* Loading state */}
+      {(unitsLoading || issuesLoading) && displayUnits.length === 0 && displayIssues.length === 0 && (
+         <div className="text-center py-20 opacity-40">
+            <div className="inline-block w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+            <p className="text-sm font-black uppercase">Carregando dados do CRM...</p>
+         </div>
+      )}
+      
+      {/* Empty state */}
+      {!unitsLoading && !issuesLoading && displayUnits.length === 0 && displayIssues.length === 0 && (
+         <div className="text-center py-20 opacity-40 border-2 border-dashed border-white/10 rounded-[48px]">
+            <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm font-black uppercase">Nenhum dado CRM disponível</p>
+            <p className="text-xs mt-2 opacity-60">Os dados do CRM serão criados automaticamente quando necessário</p>
+         </div>
+      )}
 
       {/* VIEW: HEATMAP */}
       {viewMode === 'heatmap' && (
@@ -122,7 +165,7 @@ const CrmView: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 -rotate-90 md:rotate-0">{floor.split(' ')[0]}</span>
                  </div>
                  <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {mockUnits.filter(u => u.floor === floor).map(unit => (
+                    {displayUnits.filter(u => u.floor === floor).map(unit => (
                        <button 
                           key={unit.id}
                           onClick={() => setSelectedUnit(unit)}
@@ -134,11 +177,15 @@ const CrmView: React.FC = () => {
                           </div>
                           
                           <div className="text-left">
-                             <div className="flex gap-1 mb-2">
-                                {unit.tags.slice(0, 2).map(t => <span key={t} className="text-[7px] bg-black/20 px-1.5 py-0.5 rounded uppercase font-bold">{t}</span>)}
-                             </div>
+                             {(unit.tags || []).length > 0 && (
+                                <div className="flex gap-1 mb-2 flex-wrap">
+                                   {unit.tags.slice(0, 2).map((t: string, idx: number) => (
+                                      <span key={idx} className="text-[7px] bg-black/20 px-1.5 py-0.5 rounded uppercase font-bold">{t}</span>
+                                   ))}
+                                </div>
+                             )}
                              <div className="w-full bg-black/20 h-1 rounded-full overflow-hidden">
-                                <div className="h-full bg-current transition-all duration-1000" style={{ width: `${unit.npsScore}%` }} />
+                                <div className="h-full bg-current transition-all duration-1000" style={{ width: `${unit.npsScore || unit.nps_score || 100}%` }} />
                              </div>
                           </div>
                        </button>
@@ -163,20 +210,37 @@ const CrmView: React.FC = () => {
                      <col.icon className="w-4 h-4 opacity-60" />
                      <h5 className="font-black uppercase text-xs tracking-widest">{col.title}</h5>
                      <span className="ml-auto text-[10px] bg-white/10 px-2 py-1 rounded-lg font-bold">
-                        {issues.filter(i => i.status === col.id).length}
+                        {displayIssues.filter(i => i.status === col.id).length}
                      </span>
                   </header>
                   
                   <div className="space-y-3 flex-1">
-                     {issues.filter(i => i.status === col.id).map(issue => (
-                        <div key={issue.id} className="p-5 bg-zinc-800/50 hover:bg-zinc-800 rounded-[24px] border border-white/5 cursor-grab active:cursor-grabbing group transition-all hover:-translate-y-1 shadow-lg">
+                     {displayIssues.filter(i => i.status === col.id).map(issue => (
+                        <div 
+                           key={issue.id} 
+                           className="p-5 bg-zinc-800/50 hover:bg-zinc-800 rounded-[24px] border border-white/5 cursor-grab active:cursor-grabbing group transition-all hover:-translate-y-1 shadow-lg"
+                           draggable
+                           onDragEnd={(e) => {
+                             // Implementação básica de drag and drop
+                             // Para uma implementação completa, usar uma biblioteca como react-beautiful-dnd
+                           }}
+                        >
                            <div className="flex justify-between items-start mb-3">
-                              <div className="flex gap-1">
-                                 {issue.involvedUnits.map(u => (
+                              <div className="flex gap-1 flex-wrap">
+                                 {(issue.involved_units || issue.involvedUnits || []).map((u: string) => (
                                     <span key={u} className="px-2 py-1 bg-white/5 rounded-md text-[9px] font-black uppercase">UN {u}</span>
                                  ))}
                               </div>
-                              <button className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-4 h-4 text-zinc-500" /></button>
+                              <button 
+                                 onClick={() => {
+                                   // Abrir modal de edição de issue
+                                   // Por enquanto, apenas log
+                                   console.log('Editar issue:', issue);
+                                 }}
+                                 className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                 <MoreHorizontal className="w-4 h-4 text-zinc-500" />
+                              </button>
                            </div>
                            <h6 className="font-bold text-sm leading-tight mb-2">{issue.title}</h6>
                            <p className="text-[10px] text-zinc-400 line-clamp-2">{issue.description}</p>
@@ -185,10 +249,16 @@ const CrmView: React.FC = () => {
                               <span className={`text-[9px] font-black uppercase tracking-widest ${issue.severity === 'high' ? 'text-red-500' : issue.severity === 'medium' ? 'text-amber-500' : 'text-blue-500'}`}>
                                  {issue.severity === 'high' ? 'Alta Prioridade' : issue.severity === 'medium' ? 'Atenção' : 'Baixa'}
                               </span>
-                              <span className="text-[9px] text-zinc-600 font-bold">{issue.updatedAt}</span>
+                              <span className="text-[9px] text-zinc-600 font-bold">{issue.updatedAt || issue.updated_at || 'Recente'}</span>
                            </div>
                         </div>
                      ))}
+                     
+                     {displayIssues.filter(i => i.status === col.id).length === 0 && (
+                        <div className="p-8 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[24px]">
+                           <p className="text-[10px] font-black uppercase tracking-widest">Nenhum item</p>
+                        </div>
+                     )}
                   </div>
                </div>
             ))}
@@ -212,20 +282,22 @@ const CrmView: React.FC = () => {
                </div>
 
                {/* Tags */}
-               <div className="flex flex-wrap justify-center gap-2 mt-6">
-                  {selectedUnit.tags.map(tag => (
-                     <span key={tag} className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 border border-white/5">
-                        <Tag className="w-3 h-3 opacity-50" /> {tag}
-                     </span>
-                  ))}
-               </div>
+               {(selectedUnit.tags || []).length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2 mt-6">
+                     {selectedUnit.tags.map((tag: string, idx: number) => (
+                        <span key={idx} className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-black uppercase flex items-center gap-1 border border-white/5">
+                           <Tag className="w-3 h-3 opacity-50" /> {tag}
+                        </span>
+                     ))}
+                  </div>
+               )}
 
                {/* Stats Grid */}
                <div className="grid grid-cols-2 gap-4 mt-8">
                   <div className="p-4 bg-zinc-900 rounded-2xl border border-white/5 text-center">
                      <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">NPS Score</span>
                      <div className="text-2xl font-black text-white mt-1 flex items-center justify-center gap-2">
-                        {selectedUnit.npsScore} <TrendingUp className="w-4 h-4 text-green-500" />
+                        {selectedUnit.npsScore || selectedUnit.nps_score || 100} <TrendingUp className="w-4 h-4 text-green-500" />
                      </div>
                   </div>
                   <div className="p-4 bg-zinc-900 rounded-2xl border border-white/5 text-center">

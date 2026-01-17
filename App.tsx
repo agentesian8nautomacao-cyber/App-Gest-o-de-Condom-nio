@@ -1,16 +1,26 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useToast, ToastContainer } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import ScreenSaver from './components/ScreenSaver';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppConfigProvider } from './contexts/AppConfigContext';
-import { UserRole, Package, Resident, Note, VisitorLog, PackageItem, Occurrence, Notice, ChatMessage } from './types';
+import { UserRole, Package, Resident, Note, VisitorLog, PackageItem, Occurrence, Notice, ChatMessage, Staff } from './types';
+import { useResidents } from './hooks/useResidents';
+import { usePackages } from './hooks/usePackages';
+import { useVisitors } from './hooks/useVisitors';
+import { useOccurrences } from './hooks/useOccurrences';
+import { useReservations } from './hooks/useReservations';
+import { useNotes } from './hooks/useNotes';
+import { useNotices } from './hooks/useNotices';
+import { useStaff } from './hooks/useStaff';
 import DashboardView from './components/views/DashboardView';
 import SindicoDashboardView from './components/views/SindicoDashboardView';
 import AiReportsView from './components/views/AiReportsView';
 import AiView from './components/views/AiView';
 import SettingsView from './components/views/SettingsView';
+import StaffView from './components/views/StaffView';
 import { 
   Package as PackageIcon, 
   Users, 
@@ -259,11 +269,11 @@ const QuickViewModal = ({
                 className={`p-5 bg-zinc-50 border border-black/5 rounded-3xl flex items-center justify-between group transition-all ${isClickable ? 'cursor-pointer hover:bg-zinc-100 hover:scale-[1.02] active:scale-95' : ''}`}
               >
                 <div>
-                  <h6 className="font-black text-sm uppercase">{item.title || item.recipient || item.visitorNames || item.area || item.content || item.residentName}</h6>
+                  <h6 className="font-black text-sm uppercase">{item.title || item.recipient_name || item.recipient || item.visitorNames || item.visitor_names || item.area || item.content || item.residentName || item.resident_name}</h6>
                   <p className="text-xs opacity-50 font-medium">{item.subtitle || (item.unit ? `Unidade ${item.unit}` : null) || item.date}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black opacity-30">{item.time || item.displayTime || ''}</span>
+                   <span className="text-[10px] font-black opacity-30">{item.time || item.display_time || item.displayTime || ''}</span>
                    
                    {category === 'notes' && onMarkAsDone && (
                      <button 
@@ -367,6 +377,7 @@ const AppContent: React.FC = () => {
   const [isScreenSaverActive, setIsScreenSaverActive] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
+  const toast = useToast();
   
   const [quickViewCategory, setQuickViewCategory] = useState<QuickViewCategory>(null);
 
@@ -392,53 +403,89 @@ const AppContent: React.FC = () => {
     residentName: ''
   });
 
-  const [allResidents, setAllResidents] = useState<Resident[]>([
-    { id: '1', name: 'João Silva', unit: '102A', email: 'joao@email.com', phone: '5511999999999', whatsapp: '5511999999999' },
-    { id: '2', name: 'Maria Santos', unit: '405B', email: 'maria@email.com', phone: '5511888888888', whatsapp: '5511888888888' },
-    { id: '3', name: 'Ana Oliveira', unit: '201C', email: 'ana@email.com', phone: '5511777777777', whatsapp: '5511777777777' },
-    { id: '4', name: 'Ricardo Almeida', unit: '202', email: 'ricardo@email.com', phone: '5511666666666', whatsapp: '5511666666666' },
-  ]);
+  // Hooks do Supabase
+  const { 
+    residents: allResidents, 
+    createResident, 
+    updateResident, 
+    deleteResident 
+  } = useResidents();
+  
+  const { 
+    packages: allPackages, 
+    createPackage, 
+    updatePackage, 
+    deliverPackage 
+  } = usePackages();
+  
+  const { 
+    visitors: visitorLogs, 
+    createVisitor, 
+    checkOutVisitor 
+  } = useVisitors();
+  
+  const { 
+    occurrences: allOccurrences, 
+    createOccurrence, 
+    updateOccurrence, 
+    resolveOccurrence 
+  } = useOccurrences();
+  
+  const { 
+    reservations: dayReservations, 
+    areas, 
+    createReservation, 
+    updateReservation 
+  } = useReservations();
+  
+  const { 
+    notes: allNotes, 
+    createNote, 
+    updateNote, 
+    deleteNote 
+  } = useNotes();
+  
+  const { 
+    notices: allNotices, 
+    chatMessages, 
+    createNotice, 
+    updateNotice,
+    deleteNotice,
+    markNoticeAsRead,
+    sendChatMessage,
+    clearChatMessages
+  } = useNotices();
 
-  const [allPackages, setAllPackages] = useState<Package[]>([
-    { id: '1', recipient: 'João Silva', unit: '102A', type: 'Amazon', receivedAt: new Date(Date.now() - 2 * 60 * 60000).toISOString(), displayTime: '08:30', status: 'Pendente', deadlineMinutes: 60, residentPhone: '5511999999999' },
-    { id: '2', recipient: 'Maria Santos', unit: '405B', type: 'Mercado Livre', receivedAt: new Date().toISOString(), displayTime: '11:15', status: 'Entregue', deadlineMinutes: 120, residentPhone: '5511888888888' },
-    { id: '3', recipient: 'João Silva', unit: '102A', type: 'Correios', receivedAt: new Date().toISOString(), displayTime: '14:20', status: 'Pendente', deadlineMinutes: 30, residentPhone: '5511999999999' },
-  ]);
+  const {
+    staff: allStaff,
+    createStaff,
+    updateStaff,
+    deleteStaff
+  } = useStaff();
 
-  const [allOccurrences, setAllOccurrences] = useState<Occurrence[]>([
-    { id: '1', residentName: 'Ana Oliveira', unit: '201C', description: 'Reclamou de vazamento no corredor do 2º andar.', status: 'Resolvido', date: '25/05/2024 10:00', reportedBy: 'Portaria' },
-    { id: '2', residentName: 'João Silva', unit: '102A', description: 'Morador informou que o portão da garagem está fazendo barulho excessivo.', status: 'Aberto', date: '26/05/2024 14:20', reportedBy: 'Portaria' },
-  ]);
-
-  const [visitorLogs, setVisitorLogs] = useState<any[]>([
-    { id: '1', residentName: 'Ricardo Almeida', unit: '202', visitorCount: 1, visitorNames: 'Carlos (Técnico)', entryTime: new Date(Date.now() - 1000 * 60 * 135).toISOString(), status: 'active', type: 'Prestador' },
-    { id: '2', residentName: 'Maria Fernanda', unit: '101', visitorCount: 2, visitorNames: 'Pais', entryTime: '2024-05-25T14:00:00', exitTime: '2024-05-25T16:30:00', status: 'completed', type: 'Visita' },
-    { id: '3', residentName: 'João Silva', unit: '102A', visitorCount: 1, visitorNames: 'Pedro (Entregador)', entryTime: new Date(Date.now() - 1000 * 60 * 15).toISOString(), status: 'active', type: 'Delivery' }
-  ]);
-
-  const [allNotes, setAllNotes] = useState<Note[]>([
-    { id: '1', content: 'Verificar lâmpada do bloco B que está piscando.', date: new Date().toISOString(), completed: false, category: 'Manutenção' },
-    { id: '2', content: 'Aviso de mudança agendada para unidade 303 no sábado.', date: '27/05/2024 09:30', completed: true, category: 'Agenda' }
-  ]);
-
-  // Mural de Avisos Mock Data e Estado (Atualizado)
-  const [allNotices, setAllNotices] = useState<Notice[]>([
-    { id: '1', title: 'Manutenção Preventiva', content: 'Elevador Bloco A ficará parado amanhã das 08h às 12h para manutenção.', author: 'Síndico', authorRole: 'SINDICO', date: new Date().toISOString(), category: 'Manutenção', priority: 'high', pinned: true, read: false },
-    { id: '2', title: 'Portão da Garagem', content: 'O motor do portão principal está fazendo ruído. Técnico acionado.', author: 'Zelador', authorRole: 'PORTEIRO', date: new Date(Date.now() - 86400000).toISOString(), category: 'Urgente', priority: 'high', pinned: false, read: false },
-    { id: '3', title: 'Festa Julina', content: 'A festa do condomínio será dia 25/07. Avisar moradores sobre barulho.', author: 'Comissão', authorRole: 'SINDICO', date: new Date(Date.now() - 172800000).toISOString(), category: 'Social', priority: 'normal', pinned: false, read: true },
-    { id: '4', title: 'Mudança Unidade 404', content: 'Agendada para hoje à tarde. Liberar entrada do caminhão.', author: 'Portaria 1', authorRole: 'PORTEIRO', date: new Date().toISOString(), category: 'Institucional', priority: 'normal', pinned: false, read: false },
-  ]);
+  // Local state
   const [noticeFilter, setNoticeFilter] = useState<'all' | 'urgent' | 'unread'>('all');
-  const [activeNoticeTab, setActiveNoticeTab] = useState<'wall' | 'chat'>('wall'); // Para Mobile
-
-  // Chat Mock State
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: '1', text: 'Boa tarde, alguma novidade na portaria?', senderRole: 'SINDICO', timestamp: new Date(Date.now() - 3600000).toISOString(), read: true },
-    { id: '2', text: 'Tudo tranquilo por aqui, Sr. Síndico. Apenas uma entrega grande para o 402.', senderRole: 'PORTEIRO', timestamp: new Date(Date.now() - 3500000).toISOString(), read: true },
-    { id: '3', text: 'Perfeito. Avise-me se chegar correspondência da Receita.', senderRole: 'SINDICO', timestamp: new Date(Date.now() - 3400000).toISOString(), read: true },
-  ]);
+  const [activeNoticeTab, setActiveNoticeTab] = useState<'wall' | 'chat'>('wall');
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Transform areas to areasStatus format
+  const areasStatus = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayReservations = dayReservations.filter(r => r.date === today);
+    
+    return areas.map(area => {
+      const todayCount = todayReservations.filter(r => r.area_id === area.id || r.area === area.name).length;
+      return {
+        id: area.id,
+        name: area.name,
+        capacity: area.capacity,
+        today: `${todayCount} HOJE`,
+        icon: PartyPopper, // Default icon, you can map based on area name
+        rules: area.rules || ''
+      };
+    });
+  }, [areas, dayReservations]);
 
   useEffect(() => {
     if (activeTab === 'notices' && chatEndRef.current) {
@@ -446,32 +493,24 @@ const AppContent: React.FC = () => {
     }
   }, [chatMessages, activeTab]);
 
-  const handleSendChatMessage = () => {
-    if (!chatInput.trim()) return;
+  const handleSendChatMessage = async () => {
+    if (!chatInput.trim() || !role) return;
     
-    const newMsg: ChatMessage = {
-      id: Date.now().toString(),
+    const result = await sendChatMessage({
       text: chatInput,
-      senderRole: role,
-      timestamp: new Date().toISOString(),
-      read: false
-    };
+      sender_role: role,
+      sender_id: user?.id
+    });
     
-    setChatMessages([...chatMessages, newMsg]);
-    setChatInput('');
+    if (result.error) {
+      toast.error(`Erro ao enviar mensagem: ${result.error}`);
+      return;
+    }
+    
+    if (!result.error) {
+      setChatInput('');
+    }
   };
-
-  // RESERVATION MOCK STATES
-  const [areasStatus, setAreasStatus] = useState([
-    { id: '1', name: 'SALÃO DE FESTAS CRYSTAL', capacity: 80, today: '1 HOJE', icon: PartyPopper, rules: 'Fechar às 23h • Proibido som externo' },
-    { id: '2', name: 'ESPAÇO GOURMET', capacity: 30, today: '0 HOJE', icon: UtensilsCrossed, rules: 'Limpeza inclusa na taxa' },
-    { id: '3', name: 'CHURRASQUEIRA ROOFTOP', capacity: 20, today: '0 HOJE', icon: Sofa, rules: 'Máximo 20 pessoas' },
-    { id: '4', name: 'ACADEMIA', capacity: 15, today: '0 HOJE', icon: Dumbbell, rules: 'Apenas moradores' },
-  ]);
-
-  const [dayReservations, setDayReservations] = useState([
-    { id: 'r1', resident: 'RICARDO ALMEIDA', unit: '202', area: 'SALÃO DE FESTAS CRYSTAL', time: '18:00 - 22:00', status: 'scheduled', date: 'JAN 9' }
-  ]);
 
   // Reservation Filter State
   const [reservationFilter, setReservationFilter] = useState<'all' | 'today' | 'pending'>('today');
@@ -512,37 +551,58 @@ const AppContent: React.FC = () => {
     });
   }, [newReservationData, dayReservations]);
 
-  const handleReservationAction = (id: string) => {
-    setDayReservations(prev => prev.map(r => {
-      if (r.id !== id) return r;
-      if (r.status === 'scheduled') return { ...r, status: 'active' }; // Check-in
-      if (r.status === 'active') return { ...r, status: 'completed' }; // Check-out
-      return r;
-    }));
+  const handleReservationAction = async (id: string) => {
+    const reservation = dayReservations.find(r => r.id === id);
+    if (!reservation) return;
+    
+    let newStatus: 'scheduled' | 'active' | 'completed' | 'canceled' = reservation.status;
+    if (reservation.status === 'scheduled') {
+      newStatus = 'active'; // Check-in
+    } else if (reservation.status === 'active') {
+      newStatus = 'completed'; // Check-out
+    }
+    
+    const result = await updateReservation(id, { status: newStatus });
+    if (result.error) {
+      toast.error(`Erro ao atualizar reserva: ${result.error}`);
+    }
   };
 
-  const handleCreateReservation = () => {
+  const handleCreateReservation = async () => {
     if(!newReservationData.resident || !newReservationData.date || hasTimeConflict) return;
     
-    // Format date for badge (e.g. "JAN 9")
-    const dateObj = new Date(newReservationData.date);
-    const month = dateObj.toLocaleString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
-    const day = dateObj.getDate();
-    const formattedDate = `${month} ${day}`;
+    // Find resident and area IDs
+    const resident = allResidents.find(r => r.name === newReservationData.resident);
+    const area = areas.find(a => a.name === newReservationData.area);
+    
+    if (!resident || !area) {
+      toast.warning('Morador ou área não encontrado');
+      return;
+    }
 
-    const newRes = {
-      id: Date.now().toString(),
-      resident: newReservationData.resident,
-      unit: newReservationData.unit,
-      area: newReservationData.area,
-      time: `${newReservationData.startTime} - ${newReservationData.endTime}`,
-      status: 'scheduled',
-      date: formattedDate
-    };
-    setDayReservations([newRes, ...dayReservations]);
+    // Format date to YYYY-MM-DD
+    const dateObj = new Date(newReservationData.date);
+    const formattedDate = dateObj.toISOString().split('T')[0];
+
+    const result = await createReservation({
+      area_id: area.id,
+      resident_id: resident.id,
+      resident_name: resident.name,
+      unit: resident.unit,
+      date: formattedDate,
+      start_time: newReservationData.startTime,
+      end_time: newReservationData.endTime,
+      status: 'scheduled'
+    });
+    
+    if (result.error) {
+      alert(`Erro ao criar reserva: ${result.error}`);
+      return;
+    }
+    
     setIsReservationModalOpen(false);
     // Reset form
-    setNewReservationData({ area: 'SALÃO DE FESTAS CRYSTAL', resident: '', unit: '', date: '', startTime: '', endTime: '' });
+    setNewReservationData({ area: areas[0]?.name || 'SALÃO DE FESTAS CRYSTAL', resident: '', unit: '', date: '', startTime: '', endTime: '' });
     setReservationSearchQuery('');
     setShowResSuggestions(false);
   };
@@ -668,7 +728,7 @@ const AppContent: React.FC = () => {
         p.unit.toLowerCase().includes(q) || 
         p.type.toLowerCase().includes(q) || 
         p.status.toLowerCase().includes(q) ||
-        p.displayTime.toLowerCase().includes(q)
+        (p.display_time || p.displayTime || '').toLowerCase().includes(q)
       ).slice(0, 4),
       
       visitors: visitorLogs.filter(v => 
@@ -712,8 +772,11 @@ const AppContent: React.FC = () => {
   }, [packageStep, selectedResident, packageType, packageItems]);
 
   // Visitor Helper Functions
-  const handleVisitorCheckOut = (id: string) => {
-    setVisitorLogs(prev => prev.map(v => v.id === id ? { ...v, status: 'completed', exitTime: new Date().toISOString() } : v));
+  const handleVisitorCheckOut = async (id: string) => {
+    const result = await checkOutVisitor(id);
+    if (result.error) {
+      alert(`Erro ao registrar saída: ${result.error}`);
+    }
   };
 
   const resetVisitorModal = () => {
@@ -723,21 +786,27 @@ const AppContent: React.FC = () => {
     setSearchResident(''); // Reset search when closing
   };
 
-  const handleRegisterVisitor = () => {
-    const newVisitor = {
-      id: Date.now().toString(),
-      residentName: newVisitorData.residentName || 'Desconhecido',
+  const handleRegisterVisitor = async () => {
+    const resident = allResidents.find(r => r.name === newVisitorData.residentName || r.unit === newVisitorData.unit);
+    
+    const result = await createVisitor({
+      resident_id: resident?.id,
+      resident_name: newVisitorData.residentName || 'Desconhecido',
       unit: newVisitorData.unit,
-      visitorCount: 1,
-      visitorNames: newVisitorData.name,
-      entryTime: new Date().toISOString(),
-      status: 'active',
-      type: newVisitorData.type,
+      visitor_count: 1,
+      visitor_names: newVisitorData.name,
+      type: newVisitorData.type as 'Visita' | 'Prestador' | 'Delivery',
       doc: newVisitorData.doc,
       vehicle: newVisitorData.vehicle,
-      plate: newVisitorData.plate
-    };
-    setVisitorLogs([newVisitor, ...visitorLogs]);
+      plate: newVisitorData.plate,
+      registered_by: user?.id
+    });
+    
+    if (result.error) {
+      alert(`Erro ao registrar visitante: ${result.error}`);
+      return;
+    }
+    
     resetVisitorModal();
   };
 
@@ -783,21 +852,25 @@ const AppContent: React.FC = () => {
     setPackageItems([{ id: '1', name: '', description: '' }]);
   };
 
-  const handleRegisterPackageFinal = (sendNotify: boolean) => {
+  const handleRegisterPackageFinal = async (sendNotify: boolean) => {
     if (!selectedResident) return;
-    const newPkg: Package = {
-      id: Date.now().toString(),
-      recipient: selectedResident.name,
+    
+    const items = packageItems.filter(it => it.name.trim() !== '');
+    const result = await createPackage({
+      recipient_id: selectedResident.id,
+      recipient_name: selectedResident.name,
       unit: selectedResident.unit,
       type: packageType,
-      receivedAt: new Date().toISOString(),
-      displayTime: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       status: 'Pendente',
-      deadlineMinutes: 45,
-      residentPhone: selectedResident.phone,
-      items: packageItems.filter(it => it.name.trim() !== '')
-    };
-    setAllPackages([newPkg, ...allPackages]);
+      deadline_minutes: 45,
+      resident_phone: selectedResident.phone,
+      items: items.map(it => ({ name: it.name, description: it.description || '' }))
+    });
+    
+    if (result.error) {
+      alert(`Erro ao registrar encomenda: ${result.error}`);
+      return;
+    }
     
     if (sendNotify && selectedResident.whatsapp) {
       const url = `https://wa.me/${selectedResident.whatsapp}?text=${encodeURIComponent(packageMessage)}`;
@@ -808,25 +881,36 @@ const AppContent: React.FC = () => {
     setActiveTab('dashboard');
   };
 
-  const handleDeliverPackage = (id: string) => {
-    setAllPackages(prev => prev.map(p => p.id === id ? { ...p, status: 'Entregue' } : p));
-    setSelectedPackageForDetail(null);
+  const handleDeliverPackage = async (id: string) => {
+    const result = await deliverPackage(id, user?.id);
+    if (!result.error) {
+      setSelectedPackageForDetail(null);
+    } else {
+      alert(`Erro ao entregar encomenda: ${result.error}`);
+    }
   };
 
-  const handleResolveOccurrence = (id: string) => {
-    setAllOccurrences(prev => prev.map(occ => occ.id === id ? { ...occ, status: 'Resolvido' } : occ));
+  const handleResolveOccurrence = async (id: string) => {
+    const result = await resolveOccurrence(id, user?.id);
+    if (result.error) {
+      toast.error(`Erro ao resolver ocorrência: ${result.error}`);
+    }
   };
 
-  const handleSaveOccurrenceDetails = () => {
+  const handleSaveOccurrenceDetails = async () => {
     if (!selectedOccurrenceForDetail) return;
-    setAllOccurrences(prev => prev.map(o => o.id === selectedOccurrenceForDetail.id ? selectedOccurrenceForDetail : o));
+    const result = await updateOccurrence(selectedOccurrenceForDetail.id, selectedOccurrenceForDetail);
+    if (result.error) {
+      toast.error(`Erro ao atualizar ocorrência: ${result.error}`);
+      return;
+    }
     setSelectedOccurrenceForDetail(null);
   };
 
   const handleSendReminder = (pkg: Package) => {
-    const resident = allResidents.find(r => r.name === pkg.recipient);
+    const resident = allResidents.find(r => r.name === (pkg.recipient_name || pkg.recipient));
     if (resident && resident.whatsapp) {
-      const permanence = calculatePermanence(pkg.receivedAt);
+      const permanence = calculatePermanence(pkg.received_at || pkg.receivedAt);
       const message = `Olá, ${resident.name}! Temos um volume (${pkg.type}) aguardando por você na portaria do Qualivida há ${permanence}. Favor retirar assim que possível.`;
       const url = `https://wa.me/${resident.whatsapp}?text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
@@ -841,8 +925,10 @@ const AppContent: React.FC = () => {
     setIsAddingPkgCategory(false);
   };
 
-  const handleAcknowledgeNotice = (id: string) => {
-    setAllNotices(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const handleAcknowledgeNotice = async (id: string) => {
+    if (user?.id) {
+      await markNoticeAsRead(id, user.id);
+    }
   };
 
   // RESIDENT HANDLERS
@@ -855,40 +941,73 @@ const AppContent: React.FC = () => {
     setIsResidentModalOpen(true);
   };
 
-  const handleSaveResident = () => {
+  const handleSaveResident = async () => {
     if (!residentFormData.name || !residentFormData.unit) return;
 
     if (residentFormData.id) {
       // Edit
-      setAllResidents(prev => prev.map(r => r.id === residentFormData.id ? residentFormData : r));
+      const result = await updateResident(residentFormData.id, residentFormData);
+      if (result.error) {
+        toast.error(`Erro ao atualizar morador: ${result.error}`);
+        return;
+      }
     } else {
       // Create
-      const newResident = { ...residentFormData, id: Date.now().toString() };
-      setAllResidents(prev => [newResident, ...prev]);
+      const { id, ...newResidentData } = residentFormData;
+      const result = await createResident(newResidentData);
+      if (result.error) {
+        alert(`Erro ao criar morador: ${result.error}`);
+        return;
+      }
     }
     setIsResidentModalOpen(false);
   };
 
-  const handleDeleteResident = (id: string) => {
+  const handleDeleteResident = async (id: string) => {
     if (window.confirm("Tem certeza que deseja remover este morador?")) {
-      setAllResidents(prev => prev.filter(r => r.id !== id));
-      if (selectedResidentProfile?.id === id) setSelectedResidentProfile(null);
+      const result = await deleteResident(id);
+      if (result.error) {
+        alert(`Erro ao deletar morador: ${result.error}`);
+      } else {
+        if (selectedResidentProfile?.id === id) setSelectedResidentProfile(null);
+      }
     }
   };
 
   // NOTICE HANDLERS
-  const handleSaveNoticeChanges = () => {
+  const handleSaveNoticeChanges = async () => {
     if (!selectedNoticeForEdit) return;
-    setAllNotices(prev => prev.map(n => n.id === selectedNoticeForEdit.id ? selectedNoticeForEdit : n));
+    const result = await updateNotice(selectedNoticeForEdit.id, selectedNoticeForEdit);
+    if (result.error) {
+      alert(`Erro ao atualizar aviso: ${result.error}`);
+      return;
+    }
     setSelectedNoticeForEdit(null);
   };
 
-  const handleDeleteNotice = () => {
+  const handleDeleteNotice = async () => {
      if (!selectedNoticeForEdit) return;
-     setAllNotices(prev => prev.filter(n => n.id !== selectedNoticeForEdit.id));
+     const result = await deleteNotice(selectedNoticeForEdit.id);
+     if (result.error) {
+       alert(`Erro ao deletar aviso: ${result.error}`);
+       return;
+     }
      setSelectedNoticeForEdit(null);
   };
 
+
+  // STAFF MODAL STATES
+  const [isNewStaffModalOpen, setIsNewStaffModalOpen] = useState(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [staffSearch, setStaffSearch] = useState('');
+  const [newStaffData, setNewStaffData] = useState<Partial<Staff>>({
+    name: '',
+    role: '',
+    status: 'Ativo',
+    shift: 'Comercial',
+    phone: '',
+    email: ''
+  });
 
   // NOTE MODAL STATES
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
@@ -914,23 +1033,26 @@ const AppContent: React.FC = () => {
   const [occurrenceResidentName, setOccurrenceResidentName] = useState('');
   const [occurrenceUnit, setOccurrenceUnit] = useState('');
 
-  const handleSaveOccurrence = () => {
+  const handleSaveOccurrence = async () => {
     if (!occurrenceDescription.trim()) {
       alert('Por favor, descreva a ocorrência.');
       return;
     }
 
-    const newOccurrence: Occurrence = {
-      id: Date.now().toString(),
-      residentName: occurrenceResidentName.trim() || 'Não informado',
+    const result = await createOccurrence({
+      resident_name: occurrenceResidentName.trim() || 'Não informado',
       unit: occurrenceUnit.trim() || 'Não informado',
       description: occurrenceDescription.trim(),
       status: 'Aberto',
-      date: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      reportedBy: role === 'SINDICO' ? 'Síndico' : 'Portaria'
-    };
-
-    setAllOccurrences([newOccurrence, ...allOccurrences]);
+      reported_by: role === 'SINDICO' ? 'Síndico' : 'Portaria',
+      reported_by_user_id: user?.id
+    });
+    
+    if (result.error) {
+      toast.error(`Erro ao criar ocorrência: ${result.error}`);
+      return;
+    }
+    
     setOccurrenceDescription('');
     setOccurrenceResidentName('');
     setOccurrenceUnit('');
@@ -949,20 +1071,78 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleSaveNote = () => {
+  const handleSaveStaff = async () => {
+    if (!newStaffData.name?.trim() || !newStaffData.role?.trim()) {
+      toast.warning('Nome e cargo são obrigatórios');
+      return;
+    }
+    
+    if (editingStaffId) {
+      const result = await updateStaff(editingStaffId, newStaffData);
+      if (result.error) {
+        alert(`Erro ao atualizar funcionário: ${result.error}`);
+        return;
+      }
+    } else {
+      const result = await createStaff({
+        name: newStaffData.name!,
+        role: newStaffData.role!,
+        status: newStaffData.status || 'Ativo',
+        shift: newStaffData.shift || 'Comercial',
+        phone: newStaffData.phone,
+        email: newStaffData.email
+      });
+      if (result.error) {
+        toast.error(`Erro ao criar funcionário: ${result.error}`);
+        return;
+      }
+    }
+    
+    setNewStaffData({
+      name: '',
+      role: '',
+      status: 'Ativo',
+      shift: 'Comercial',
+      phone: '',
+      email: ''
+    });
+    setEditingStaffId(null);
+    setIsNewStaffModalOpen(false);
+  };
+
+  const handleDeleteStaff = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este funcionário?')) return;
+    
+    const result = await deleteStaff(id);
+    if (result.error) {
+      alert(`Erro ao excluir funcionário: ${result.error}`);
+    }
+  };
+
+  const handleSaveNote = async () => {
     if (!newNoteContent.trim()) return;
     if (editingNoteId) {
-      setAllNotes(allNotes.map(n => n.id === editingNoteId ? { ...n, content: newNoteContent, category: newNoteCategory, scheduled: newNoteScheduled } : n));
-    } else {
-      const newNote: Note = {
-        id: Date.now().toString(),
+      const result = await updateNote(editingNoteId, {
         content: newNoteContent,
-        date: new Date().toISOString(),
-        completed: false,
         category: newNoteCategory,
-        scheduled: newNoteScheduled
-      };
-      setAllNotes([newNote, ...allNotes]);
+        scheduled: newNoteScheduled || undefined
+      });
+      if (result.error) {
+        alert(`Erro ao atualizar nota: ${result.error}`);
+        return;
+      }
+    } else {
+      const result = await createNote({
+        content: newNoteContent,
+        category: newNoteCategory,
+        scheduled: newNoteScheduled || undefined,
+        completed: false,
+        created_by: user?.id
+      });
+      if (result.error) {
+        toast.error(`Erro ao criar nota: ${result.error}`);
+        return;
+      }
     }
     setNewNoteContent('');
     setNewNoteCategory('Geral');
@@ -1250,6 +1430,25 @@ const AppContent: React.FC = () => {
                           <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest">Online Agora</p>
                        </div>
                     </div>
+                    {chatMessages.length > 0 && (
+                       <button
+                          onClick={async () => {
+                             if (!confirm('Tem certeza que deseja limpar toda a conversa? Esta ação não pode ser desfeita.')) {
+                                return;
+                             }
+                             const result = await clearChatMessages();
+                             if (result.error) {
+                                toast.error(`Erro ao limpar conversa: ${result.error}`);
+                             } else {
+                                toast.success('Conversa limpa com sucesso');
+                             }
+                          }}
+                          className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                          title="Limpar conversa"
+                       >
+                          <Trash2 className="w-4 h-4" />
+                       </button>
+                    )}
                  </div>
 
                  {/* Messages Stream */}
@@ -1728,7 +1927,7 @@ const AppContent: React.FC = () => {
           p.recipient.toLowerCase().includes(packageSearch.toLowerCase()) ||
           p.type.toLowerCase().includes(packageSearch.toLowerCase()) ||
           p.unit.toLowerCase().includes(packageSearch.toLowerCase()) ||
-          p.displayTime.toLowerCase().includes(packageSearch.toLowerCase()) ||
+          (p.display_time || p.displayTime || '').toLowerCase().includes(packageSearch.toLowerCase()) ||
           p.status.toLowerCase().includes(packageSearch.toLowerCase())
         );
         return (
@@ -1758,7 +1957,7 @@ const AppContent: React.FC = () => {
                 >
                   <div>
                     <p className="text-[10px] font-black opacity-40 uppercase">{pkg.type}</p>
-                    <h4 className="font-black text-lg group-hover:text-blue-500 transition-colors">{pkg.recipient}</h4>
+                    <h4 className="font-black text-lg group-hover:text-blue-500 transition-colors">{pkg.recipient_name || pkg.recipient}</h4>
                     <p className="text-xs opacity-60">Unidade {pkg.unit} • {pkg.displayTime}</p>
                     {pkg.items && pkg.items.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -1864,7 +2063,7 @@ const AppContent: React.FC = () => {
                    <button 
                      onClick={(e) => {
                        e.stopPropagation();
-                       setAllNotes(allNotes.map(n => n.id === note.id ? {...n, completed: !n.completed} : n));
+                       updateNote(note.id, { completed: !note.completed });
                      }} 
                      className="p-2 hover:bg-white/10 rounded-xl transition-all"
                    >
@@ -1899,19 +2098,41 @@ const AppContent: React.FC = () => {
             chatMessages={chatMessages}
           />
         );
-      case 'settings':
-        return <SettingsView />;
       case 'staff':
         return (
-          <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-            <header className="flex justify-between items-center">
-              <h3 className="text-3xl font-black uppercase tracking-tighter">Funcionários</h3>
-            </header>
-            <div className="text-center py-20 opacity-40">
-              <p className="text-sm font-black uppercase">Funcionalidade em desenvolvimento</p>
-            </div>
-          </div>
+          <StaffView
+            allStaff={allStaff}
+            staffSearch={staffSearch}
+            setStaffSearch={setStaffSearch}
+            onAddStaff={() => {
+              setEditingStaffId(null);
+              setNewStaffData({
+                name: '',
+                role: '',
+                status: 'Ativo',
+                shift: 'Comercial',
+                phone: '',
+                email: ''
+              });
+              setIsNewStaffModalOpen(true);
+            }}
+            onEditStaff={(staff) => {
+              setEditingStaffId(staff.id);
+              setNewStaffData({
+                name: staff.name,
+                role: staff.role,
+                status: staff.status,
+                shift: staff.shift,
+                phone: staff.phone || '',
+                email: staff.email || ''
+              });
+              setIsNewStaffModalOpen(true);
+            }}
+            onDeleteStaff={handleDeleteStaff}
+          />
         );
+      case 'settings':
+        return <SettingsView />;
       default: return <div className="p-10 text-center opacity-40 font-black uppercase">{activeTab}</div>;
     }
   };
@@ -1936,6 +2157,9 @@ const AppContent: React.FC = () => {
       </Layout>
 
       {role === 'PORTEIRO' && <DraggableFab onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} />}
+
+      {/* TOAST NOTIFICATIONS */}
+      <toast.ToastContainer />
 
       {/* MODAL DE NOTIFICAÇÕES */}
       {isNotificationsOpen && (
@@ -2099,7 +2323,7 @@ const AppContent: React.FC = () => {
         onClose={() => setQuickViewCategory(null)} 
         onGoToPage={(tab) => setActiveTab(tab)}
         onMarkAsDone={(note) => {
-          setAllNotes(prev => prev.map(n => n.id === note.id ? { ...n, completed: true } : n));
+          updateNote(note.id, { completed: true });
         }}
         onAddNew={() => {
           if (quickViewCategory === 'visitors') {
@@ -2315,7 +2539,7 @@ const AppContent: React.FC = () => {
                    </div>
                    <div className="p-5 bg-zinc-50 rounded-[24px] border border-black/5">
                       <p className="text-[9px] font-black uppercase opacity-30 mb-1">Entrada</p>
-                      <p className="text-sm font-bold uppercase">{new Date(selectedVisitorForDetail.entryTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      <p className="text-sm font-bold uppercase">{new Date(selectedVisitorForDetail.entry_time || selectedVisitorForDetail.entryTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                    </div>
                 </div>
 
@@ -2709,7 +2933,7 @@ const AppContent: React.FC = () => {
                              </div>
                              <div className="flex-1 p-3 rounded-xl hover:bg-white/5 transition-all">
                                 <h6 className="text-sm font-bold uppercase">{pkg.type}</h6>
-                                <p className="text-[10px] opacity-40">Entregue em {new Date(pkg.receivedAt).toLocaleDateString()}</p>
+                                <p className="text-[10px] opacity-40">Entregue em {new Date(pkg.received_at || pkg.receivedAt).toLocaleDateString()}</p>
                              </div>
                           </div>
                        ))}
@@ -2893,7 +3117,7 @@ const AppContent: React.FC = () => {
                      <span className="text-[8px] font-black uppercase tracking-widest opacity-30 block mb-2">Registro de Entrada</span>
                      <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 opacity-40" />
-                        <span className="text-lg font-black uppercase">{selectedPackageForDetail.displayTime}</span>
+                        <span className="text-lg font-black uppercase">{selectedPackageForDetail.display_time || selectedPackageForDetail.displayTime}</span>
                      </div>
                   </div>
                   <div className="p-8 bg-black text-white rounded-[32px] shadow-2xl relative overflow-hidden">
@@ -3331,7 +3555,7 @@ const AppContent: React.FC = () => {
                                <span className="text-[9px] font-black uppercase opacity-30 tracking-tighter">{note.category}</span>
                             </div>
                             <button 
-                              onClick={() => setAllNotes(allNotes.map(n => n.id === note.id ? {...n, completed: !n.completed} : n))}
+                              onClick={() => updateNote(note.id, { completed: !note.completed })}
                               className={`p-2 rounded-xl transition-all ${note.completed ? 'bg-green-500 text-white' : 'bg-white text-zinc-200 border border-zinc-100 group-hover:text-zinc-400'}`}
                             >
                               <Check className="w-4 h-4" />
@@ -3351,6 +3575,103 @@ const AppContent: React.FC = () => {
                   <Save className="w-4 h-4" /> {editingNoteId ? 'Atualizar Registro' : 'Salvar Nota Rápida'}
                 </button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* STAFF MODAL */}
+      {isNewStaffModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => { setIsNewStaffModalOpen(false); setEditingStaffId(null); }} />
+          <div className="relative w-full max-w-lg bg-white text-black rounded-[40px] shadow-2xl p-8 md:p-12 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <header className="flex justify-between items-start mb-8">
+              <h4 className="text-2xl font-black uppercase tracking-tight">{editingStaffId ? 'Editar Funcionário' : 'Novo Funcionário'}</h4>
+              <button onClick={() => { setIsNewStaffModalOpen(false); setEditingStaffId(null); }} className="p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all shadow-sm"><X className="w-5 h-5"/></button>
+            </header>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Nome *</label>
+                <input 
+                  type="text"
+                  placeholder="Nome completo..."
+                  value={newStaffData.name || ''}
+                  onChange={e => setNewStaffData({ ...newStaffData, name: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Cargo *</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: Zelador, Porteiro, Faxineira..."
+                  value={newStaffData.role || ''}
+                  onChange={e => setNewStaffData({ ...newStaffData, role: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Status</label>
+                  <select 
+                    value={newStaffData.status || 'Ativo'}
+                    onChange={e => setNewStaffData({ ...newStaffData, status: e.target.value as 'Ativo' | 'Férias' | 'Licença' })}
+                    className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                  >
+                    <option value="Ativo">Ativo</option>
+                    <option value="Férias">Férias</option>
+                    <option value="Licença">Licença</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Turno</label>
+                  <select 
+                    value={newStaffData.shift || 'Comercial'}
+                    onChange={e => setNewStaffData({ ...newStaffData, shift: e.target.value as 'Comercial' | 'Manhã' | 'Tarde' | 'Noite' | 'Madrugada' })}
+                    className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                  >
+                    <option value="Comercial">Comercial</option>
+                    <option value="Manhã">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noite">Noite</option>
+                    <option value="Madrugada">Madrugada</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Telefone</label>
+                <input 
+                  type="tel"
+                  placeholder="(00) 00000-0000"
+                  value={newStaffData.phone || ''}
+                  onChange={e => setNewStaffData({ ...newStaffData, phone: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Email</label>
+                <input 
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={newStaffData.email || ''}
+                  onChange={e => setNewStaffData({ ...newStaffData, email: e.target.value })}
+                  className="w-full p-4 bg-zinc-50 rounded-2xl outline-none font-bold text-sm border border-transparent focus:border-black/5"
+                />
+              </div>
+
+              <button 
+                onClick={handleSaveStaff}
+                disabled={!newStaffData.name?.trim() || !newStaffData.role?.trim()}
+                className={`w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Save className="w-4 h-4" /> {editingStaffId ? 'Atualizar Funcionário' : 'Salvar Funcionário'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { BrainCircuit, Mic, SendHorizontal, X, Activity, Radio, Cpu, Sparkles, MessageSquare, History, Volume2, ShieldAlert, Settings, User } from 'lucide-react';
+import { BrainCircuit, Mic, SendHorizontal, X, Activity, Radio, Cpu, Sparkles, MessageSquare, History, Volume2, ShieldAlert, Settings, User, AlertCircle } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { encode, decode, decodeAudioData } from '../../services/audioHelper';
 import { getInternalInstructions } from '../../services/ai/internalInstructions';
 import { useAppConfig } from '../../contexts/AppConfigContext';
+import { useToast } from '../Toast';
 
 interface AiViewProps {
   allPackages: any[];
@@ -40,6 +41,7 @@ const AiView: React.FC<AiViewProps> = ({
   chatMessages
 }) => {
   const { config, updateAIConfig } = useAppConfig();
+  const toast = useToast();
   // Chat State
   const [input, setInput] = useState('');
   const aiName = config.aiConfig.name;
@@ -135,8 +137,37 @@ ${voiceSettings.style === 'serious'
     `;
   }, [allPackages, visitorLogs, allOccurrences, allNotes, chatMessages, allNotices]);
 
+  // Helper para tratar erros da API Gemini
+  const handleApiError = (error: any, retryCount = 0): { shouldRetry: boolean; retryDelay?: number; message?: string } => {
+    // Verificar se é erro 429 (quota exceeded)
+    if (error?.error?.code === 429 || error?.status === 'RESOURCE_EXHAUSTED') {
+      const retryDelay = error?.error?.details?.find((d: any) => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')?.retryDelay;
+      const delaySeconds = retryDelay ? parseInt(retryDelay) : 10;
+      
+      // Tentar retry automaticamente até 2 vezes
+      if (retryCount < 2) {
+        return { 
+          shouldRetry: true, 
+          retryDelay: delaySeconds * 1000, // Converter para ms
+          message: `Cota da API excedida. Tentando novamente em ${delaySeconds}s... (${retryCount + 1}/2)`
+        };
+      }
+      
+      return {
+        shouldRetry: false,
+        message: 'Cota diária da API Gemini excedida. Por favor, aguarde algumas horas ou atualize seu plano da API do Google.\n\nPara mais informações:\n• https://ai.google.dev/gemini-api/docs/rate-limits\n• https://ai.dev/rate-limit'
+      };
+    }
+    
+    // Outros erros
+    return {
+      shouldRetry: false,
+      message: error?.error?.message || error?.message || 'Erro ao conectar com a Inteligência Artificial. Verifique sua conexão e tente novamente.'
+    };
+  };
+
   // --- FUNÇÕES DE CHAT (GEMINI 3 PRO) ---
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (retryCount = 0) => {
     if (!input.trim() || isProcessing) return;
 
     const userMsg: ChatMessage = {
@@ -147,6 +178,7 @@ ${voiceSettings.style === 'serious'
     };
 
     setMessages(prev => [...prev, userMsg]);
+    const userInput = input;
     setInput('');
     setIsProcessing(true);
 
@@ -158,7 +190,7 @@ ${voiceSettings.style === 'serious'
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: [
-          { role: 'user', parts: [{ text: `${persona}\n\nCONTEXTO EM TEMPO REAL:\n${context}\n\nSOLICITAÇÃO DO USUÁRIO:\n${userMsg.text}` }] }
+          { role: 'user', parts: [{ text: `${persona}\n\nCONTEXTO EM TEMPO REAL:\n${context}\n\nSOLICITAÇÃO DO USUÁRIO:\n${userInput}` }] }
         ],
         config: { temperature: 0.7 }
       });
@@ -171,8 +203,41 @@ ${voiceSettings.style === 'serious'
       };
 
       setMessages(prev => [...prev, modelMsg]);
-    } catch (error) {
-      console.error(error);
+      
+      // Limpar qualquer mensagem de erro anterior
+      setMessages(prev => prev.filter(m => !m.text.includes('⚠️ Erro')));
+    } catch (error: any) {
+      console.error('Error in handleSendMessage:', error);
+      
+      const errorInfo = handleApiError(error, retryCount);
+      
+      if (errorInfo.shouldRetry && errorInfo.retryDelay) {
+        // Mostrar toast informativo
+        toast.warning(errorInfo.message || 'Aguardando antes de tentar novamente...');
+        
+        // Retry após delay
+        setTimeout(() => {
+          handleSendMessage(retryCount + 1);
+        }, errorInfo.retryDelay);
+        return;
+      }
+      
+      // Erro final - mostrar mensagem ao usuário
+      const errorMsg: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'model',
+        text: `⚠️ Erro: ${errorInfo.message || 'Não foi possível processar sua solicitação.'}`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorMsg]);
+      
+      // Mostrar toast de erro
+      if (errorInfo.message?.includes('Cota diária')) {
+        toast.error('Cota da API excedida. Verifique seu plano do Google Gemini API.');
+      } else {
+        toast.error(errorInfo.message || 'Erro ao processar mensagem');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -469,6 +534,9 @@ ${voiceSettings.style === 'serious'
             </div>
          </div>
       </div>
+      
+      {/* Toast Container */}
+      <toast.ToastContainer />
     </div>
   );
 };

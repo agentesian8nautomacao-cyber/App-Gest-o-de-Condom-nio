@@ -93,6 +93,32 @@ const Login: React.FC = () => {
               </div>
             )}
 
+            {/* Botões de seleção de perfil */}
+            <div className="mb-8 flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => handleRoleChange('PORTEIRO')}
+                className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all ${
+                  username === 'portaria'
+                    ? 'bg-white text-black shadow-lg scale-105'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white border border-white/10'
+                }`}
+              >
+                Portaria
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleChange('SINDICO')}
+                className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all ${
+                  username === 'admin'
+                    ? 'bg-white text-black shadow-lg scale-105'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white border border-white/10'
+                }`}
+              >
+                Síndico
+              </button>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
                 <div className="relative">

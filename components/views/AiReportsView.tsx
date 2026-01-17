@@ -17,10 +17,12 @@ import {
   Shield,
   ShieldAlert,
   Target,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { useAppConfig } from '../../contexts/AppConfigContext';
+import { useToast } from '../Toast';
 
 interface AiReportsViewProps {
   allPackages: any[];
@@ -38,8 +40,10 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
   dayReservations
 }) => {
   const { config } = useAppConfig();
+  const toast = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportContent, setReportContent] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'current' | 'previous'>('current');
 
   // Cálculos de métricas
@@ -70,7 +74,64 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
     };
   }, [visitorLogs, allPackages, allOccurrences, allNotes, dayReservations]);
 
-  const handleGenerateReport = async () => {
+  // Helper para tratar erros da API Gemini
+  const handleApiError = (error: any, retryCount = 0): { shouldRetry: boolean; retryDelay?: number; message?: string } => {
+    // Verificar se é erro 429 (quota exceeded)
+    const isQuotaError = error?.error?.code === 429 || 
+                        error?.code === 429 || 
+                        error?.status === 'RESOURCE_EXHAUSTED' ||
+                        error?.error?.status === 'RESOURCE_EXHAUSTED';
+    
+    if (isQuotaError) {
+      const details = error?.error?.details || error?.details || [];
+      const retryInfo = details.find((d: any) => 
+        d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' || 
+        d.retryDelay
+      );
+      
+      const retryDelay = retryInfo?.retryDelay || error?.error?.details?.find((d: any) => d.retryDelay)?.retryDelay;
+      const delaySeconds = retryDelay ? Math.ceil(parseFloat(String(retryDelay))) : 10;
+      
+      // Tentar retry automaticamente até 2 vezes
+      if (retryCount < 2) {
+        return { 
+          shouldRetry: true, 
+          retryDelay: delaySeconds * 1000, // Converter para ms
+          message: `Cota da API excedida. Tentando novamente em ${delaySeconds}s... (${retryCount + 1}/2)`
+        };
+      }
+      
+      return {
+        shouldRetry: false,
+        message: '⚠️ Cota diária da API Gemini excedida.\n\nPor favor, aguarde algumas horas ou atualize seu plano da API do Google.\n\nPara mais informações:\n• https://ai.google.dev/gemini-api/docs/rate-limits\n• https://ai.dev/rate-limit'
+      };
+    }
+    
+    // Outros erros - extrair mensagem formatada
+    let errorMessage = '';
+    
+    if (error?.error?.message) {
+      errorMessage = error.error.message;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else {
+      errorMessage = 'Erro ao conectar com a Inteligência Artificial. Verifique sua conexão e tente novamente.';
+    }
+    
+    // Limpar mensagens de erro muito longas ou com JSON
+    if (errorMessage.length > 500 || errorMessage.includes('{"error":')) {
+      errorMessage = 'Erro ao gerar relatório. Por favor, verifique sua conexão e tente novamente.';
+    }
+    
+    return {
+      shouldRetry: false,
+      message: errorMessage
+    };
+  };
+
+  const handleGenerateReport = async (retryCount = 0) => {
     setIsGenerating(true);
     setReportContent(null);
 
@@ -113,18 +174,286 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
         `,
       });
 
-      setReportContent(response.text || "Não foi possível gerar o relatório.");
-    } catch (error) {
-      console.error(error);
-      setReportContent("Erro ao conectar com a Inteligência Artificial. Verifique sua conexão e tente novamente.");
+      const content = response.text || "Não foi possível gerar o relatório.";
+      
+      // Verificar se o conteúdo contém JSON de erro (não deveria acontecer, mas por segurança)
+      if (content.includes('{"error":') || content.includes('"code":429')) {
+        // Se o conteúdo contém erro, tratar como erro
+        const errorInfo = handleApiError({ error: { code: 429 } }, retryCount);
+        const errorMessage = errorInfo.message || 'Erro ao gerar relatório. Por favor, tente novamente.';
+        setReportContent(errorMessage);
+        setIsError(true);
+        toast.error('Cota da API excedida. Verifique seu plano do Google Gemini API.');
+        return;
+      }
+      
+      setReportContent(content);
+      setIsError(false);
+      
+      // Mostrar sucesso se retry funcionou
+      if (retryCount > 0) {
+        toast.success('Relatório gerado com sucesso após retry!');
+      }
+    } catch (error: any) {
+      console.error('Error in handleGenerateReport:', error);
+      
+      // Parse do erro se for uma string JSON ou objeto serializado
+      let parsedError = error;
+      if (typeof error === 'string') {
+        try {
+          // Tentar parsear se for JSON stringificado
+          parsedError = JSON.parse(error);
+        } catch {
+          // Se não for JSON válido, verificar se contém JSON no meio
+          if (error.includes('{"error":')) {
+            // Extrair apenas a parte do erro se estiver embutida em texto
+            const jsonMatch = error.match(/\{"error":\{.*?\}\}/s);
+            if (jsonMatch) {
+              try {
+                parsedError = JSON.parse(jsonMatch[0]);
+              } catch {
+                parsedError = { message: error.replace(/\{"error":\{.*?\}\}/s, '').trim() || 'Erro ao gerar relatório' };
+              }
+            } else {
+              parsedError = { message: error };
+            }
+          } else {
+            parsedError = { message: error };
+          }
+        }
+      } else if (error && typeof error === 'object') {
+        // Se já é um objeto, verificar se tem a estrutura esperada
+        parsedError = error;
+      } else {
+        parsedError = { message: String(error) || 'Erro desconhecido' };
+      }
+      
+      const errorInfo = handleApiError(parsedError, retryCount);
+      
+      if (errorInfo.shouldRetry && errorInfo.retryDelay) {
+        // Mostrar toast informativo
+        toast.warning(errorInfo.message || 'Aguardando antes de tentar novamente...');
+        
+        // Retry após delay (manter isGenerating como true durante o retry)
+        setTimeout(() => {
+          handleGenerateReport(retryCount + 1);
+        }, errorInfo.retryDelay);
+        return; // Não chamar setIsGenerating(false) aqui, pois vamos tentar novamente
+      }
+      
+      // Erro final - mostrar mensagem formatada ao usuário
+      const errorMessage = errorInfo.message || 'Erro ao conectar com a Inteligência Artificial. Verifique sua conexão e tente novamente.';
+      
+      // Garantir que não seja o objeto JSON completo
+      const cleanMessage = typeof errorMessage === 'string' 
+        ? errorMessage 
+        : 'Erro ao gerar relatório. Por favor, tente novamente.';
+      
+      // Limpar qualquer JSON que possa estar no conteúdo
+      let finalMessage = cleanMessage;
+      
+      // Remover qualquer JSON de erro que possa estar no texto
+      finalMessage = finalMessage.replace(/\{"error":\{[^}]*\}\}/g, '');
+      finalMessage = finalMessage.replace(/\\n/g, '\n');
+      finalMessage = finalMessage.trim();
+      
+      // Se ainda contém JSON ou código de erro, substituir por mensagem formatada
+      if (finalMessage.includes('"code":429') || 
+          finalMessage.includes('"status":"RESOURCE_EXHAUSTED"') ||
+          finalMessage.includes('quota exceeded') ||
+          (finalMessage.includes('429') && finalMessage.length > 200)) {
+        finalMessage = '⚠️ Cota diária da API Gemini excedida.\n\nPor favor, aguarde algumas horas ou atualize seu plano da API do Google.\n\nPara mais informações:\n• https://ai.google.dev/gemini-api/docs/rate-limits\n• https://ai.dev/rate-limit';
+      } else if (finalMessage.includes('{"error":') || finalMessage.length > 1000) {
+        // Se ainda contém JSON ou mensagem muito longa, usar mensagem padrão
+        finalMessage = 'Erro ao gerar relatório. Por favor, verifique sua conexão e tente novamente.';
+      }
+      
+      // Garantir que não está vazia
+      if (!finalMessage || finalMessage.trim().length === 0) {
+        finalMessage = 'Erro ao gerar relatório. Por favor, tente novamente.';
+      }
+      
+      setReportContent(finalMessage);
+      setIsError(true); // Marcar como erro
+      
+      // Mostrar toast de erro
+      if (finalMessage.includes('Cota diária') || finalMessage.includes('Cota da API') || finalMessage.includes('quota')) {
+        toast.error('Cota da API excedida. Verifique seu plano do Google Gemini API.');
+      } else {
+        toast.error('Erro ao gerar relatório');
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleExportPDF = () => {
-    // Implementação futura de exportação PDF
-    alert('Funcionalidade de exportação PDF em desenvolvimento');
+    if (!reportContent || isError) {
+      toast.warning('Gere um relatório válido primeiro antes de exportar.');
+      return;
+    }
+
+    // Criar conteúdo HTML formatado para PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Relatório Executivo - ${config.condominiumName}</title>
+          <style>
+            @page {
+              margin: 2cm;
+              size: A4;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+              line-height: 1.6;
+              color: #1a1a1a;
+              max-width: 210mm;
+              margin: 0 auto;
+              padding: 20mm;
+              background: white;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #000;
+              padding-bottom: 20px;
+            }
+            .header h1 {
+              font-size: 24px;
+              font-weight: 900;
+              text-transform: uppercase;
+              margin: 0;
+              letter-spacing: 2px;
+            }
+            .header .subtitle {
+              font-size: 12px;
+              margin-top: 8px;
+              opacity: 0.7;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .metadata {
+              margin: 20px 0;
+              padding: 15px;
+              background: #f5f5f5;
+              border-radius: 8px;
+              font-size: 11px;
+            }
+            .metadata p {
+              margin: 5px 0;
+            }
+            .content {
+              margin-top: 30px;
+              font-size: 12px;
+              line-height: 1.8;
+            }
+            .content h2 {
+              font-size: 16px;
+              font-weight: 800;
+              margin-top: 25px;
+              margin-bottom: 12px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 5px;
+            }
+            .content h3 {
+              font-size: 14px;
+              font-weight: 700;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+            .content p {
+              margin: 10px 0;
+              text-align: justify;
+            }
+            .content ul, .content ol {
+              margin: 10px 0;
+              padding-left: 25px;
+            }
+            .content li {
+              margin: 5px 0;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #ddd;
+              font-size: 10px;
+              text-align: center;
+              opacity: 0.6;
+            }
+            @media print {
+              body {
+                margin: 0;
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Relatório Executivo</h1>
+            <div class="subtitle">Preparatório para Assembleia</div>
+            <div class="subtitle">${config.condominiumName}</div>
+          </div>
+          
+          <div class="metadata">
+            <p><strong>Data do Relatório:</strong> ${new Date().toLocaleDateString('pt-BR', { 
+              day: '2-digit', 
+              month: 'long', 
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</p>
+            <p><strong>Período:</strong> ${selectedPeriod === 'current' ? 'Mês Atual' : 'Mês Anterior'}</p>
+            <p><strong>Métricas:</strong></p>
+            <ul style="margin: 5px 0; padding-left: 20px; font-size: 10px;">
+              <li>Visitantes Totais: ${metrics.totalVisitors} (${metrics.activeVisitors} ativos agora)</li>
+              <li>Encomendas: ${metrics.totalPackages} (${metrics.pendingPackages} pendentes, ${metrics.deliveredPackages} entregues)</li>
+              <li>Ocorrências: ${metrics.totalOccurrences} (${metrics.openOccurrences} abertas, ${metrics.resolvedOccurrences} resolvidas)</li>
+              <li>Taxa de Resolução: ${metrics.resolutionRate}%</li>
+              <li>Reservas: ${metrics.totalReservations}</li>
+              <li>Notas Pendentes: ${metrics.pendingNotes}</li>
+            </ul>
+          </div>
+          
+          <div class="content">
+            ${reportContent
+              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+              .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+              .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+              .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+              .replace(/\n\n/g, '</p><p>')
+              .replace(/\n/g, '<br>')}
+          </div>
+          
+          <div class="footer">
+            <p>Documento gerado pelo Sistema de Gestão Condominial Qualivida</p>
+            <p>Este relatório é confidencial e destinado exclusivamente aos membros da assembleia</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Criar nova janela e adicionar conteúdo
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Por favor, permita pop-ups para exportar o PDF.');
+      return;
+    }
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    // Aguardar carregamento e imprimir
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    };
   };
 
   return (
@@ -320,26 +649,64 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
 
             {reportContent && !isGenerating && (
               <div className="animate-in slide-in-from-bottom-8 duration-700">
-                <div className="premium-glass p-8 rounded-[24px] border border-[var(--border-color)] mb-6">
-                  <div className="prose prose-invert prose-sm max-w-none whitespace-pre-line leading-relaxed font-medium text-[var(--text-primary)]">
-                    {reportContent}
-                  </div>
+                <div className="premium-glass p-8 rounded-[24px] border border-[var(--border-color)] mb-6 relative">
+                  <button
+                    onClick={() => {
+                      setReportContent(null);
+                      setIsError(false);
+                    }}
+                    className="absolute top-4 right-4 p-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]/80 transition-all z-10"
+                    title="Fechar relatório"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  {isError ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                        <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="text-lg font-black uppercase text-red-400 mb-2">Erro ao Gerar Relatório</h4>
+                          <div className="text-sm font-medium text-[var(--text-primary)] whitespace-pre-line leading-relaxed">
+                            {reportContent}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                        <p className="text-xs font-bold text-amber-400 mb-2">O que você pode fazer:</p>
+                        <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc list-inside">
+                          <li>Aguarde algumas horas para a cota da API ser renovada</li>
+                          <li>Verifique seu plano do Google Gemini API</li>
+                          <li>Tente novamente mais tarde</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-invert prose-sm max-w-none whitespace-pre-line leading-relaxed font-medium text-[var(--text-primary)]">
+                      {reportContent}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setReportContent(null)}
+                    onClick={() => {
+                      setReportContent(null);
+                      setIsError(false);
+                      handleGenerateReport();
+                    }}
                     className="px-6 py-3 bg-[var(--glass-bg)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[var(--glass-bg)]/80 transition-all flex items-center gap-2"
                   >
                     <RefreshCcw className="w-4 h-4" />
-                    Regenerar
+                    {isError ? 'Tentar Novamente' : 'Regenerar'}
                   </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 transition-all shadow-lg flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Exportar PDF
-                  </button>
+                  {!isError && (
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 transition-all shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Exportar PDF
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -420,6 +787,9 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Toast Container */}
+      <toast.ToastContainer />
     </div>
   );
 };

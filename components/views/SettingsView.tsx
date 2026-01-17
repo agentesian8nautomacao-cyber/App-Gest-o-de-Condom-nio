@@ -5,6 +5,7 @@ import WhatsAppTemplatesSection from '../settings/WhatsAppTemplatesSection';
 import KeyboardShortcutsSection from '../settings/KeyboardShortcutsSection';
 import AIPersonalitySection from '../settings/AIPersonalitySection';
 import ThemeSelectionSection from '../settings/ThemeSelectionSection';
+import UserProfileSection from '../settings/UserProfileSection';
 
 const SettingsView: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const SettingsView: React.FC = () => {
       </header>
 
       <div className="space-y-6">
+        <UserProfileSection />
         <CondominiumNameSection />
         <ThemeSelectionSection />
         <WhatsAppTemplatesSection />
