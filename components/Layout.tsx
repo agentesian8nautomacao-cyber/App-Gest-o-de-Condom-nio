@@ -102,7 +102,6 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'notices', label: 'Mural de Avisos', icon: Bell, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'residents', label: 'Moradores', icon: Users, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'occurrences', label: 'Ocorrências', icon: AlertCircle, roles: ['PORTEIRO', 'SINDICO'] },
-    { id: 'crm', label: 'CRM', icon: BarChart3, roles: ['SINDICO'] },
     { id: 'staff', label: 'Funcionários', icon: ClipboardList, roles: ['SINDICO'] },
     { id: 'visitors', label: 'Visitantes', icon: UserCircle, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'notes', label: 'Bloco de Notas', icon: MessageSquare, roles: ['PORTEIRO', 'SINDICO'] },
