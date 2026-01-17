@@ -102,15 +102,19 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'notices', label: 'Mural de Avisos', icon: Bell, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'residents', label: 'Moradores', icon: Users, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'occurrences', label: 'Ocorrências', icon: AlertCircle, roles: ['PORTEIRO', 'SINDICO'] },
+    { id: 'crm', label: 'CRM', icon: BarChart3, roles: ['SINDICO'] },
     { id: 'staff', label: 'Funcionários', icon: ClipboardList, roles: ['SINDICO'] },
-    { id: 'visitors', label: 'Visitantes', icon: UserCircle, roles: ['PORTEIRO'] },
-    { id: 'notes', label: 'Bloco de Notas', icon: MessageSquare, roles: ['PORTEIRO'] },
+    { id: 'visitors', label: 'Visitantes', icon: UserCircle, roles: ['PORTEIRO', 'SINDICO'] },
+    { id: 'notes', label: 'Bloco de Notas', icon: MessageSquare, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'reports', label: 'Relatório de IA', icon: BrainCircuit, roles: ['SINDICO'] },
-    { id: 'ai', label: 'Inteligência IA', icon: BrainCircuit, roles: ['PORTEIRO'] },
+    { id: 'ai', label: 'Inteligência IA', icon: BrainCircuit, roles: ['PORTEIRO', 'SINDICO'] },
     { id: 'settings', label: 'Configurações', icon: Settings, roles: ['PORTEIRO', 'SINDICO'] },
   ];
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(role));
+  // SINDICO tem acesso a todas as páginas
+  const filteredMenu = role === 'SINDICO' 
+    ? menuItems 
+    : menuItems.filter(item => item.roles.includes(role));
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -178,7 +182,7 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
           {!isDesktopCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-black truncate uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{role === 'SINDICO' ? 'Admin' : 'Portaria'}</p>
+              <p className="text-xs font-black truncate uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{role === 'SINDICO' ? 'Administrador' : 'Portaria'}</p>
             </div>
           )}
           <button 

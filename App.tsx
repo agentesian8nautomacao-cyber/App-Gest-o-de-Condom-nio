@@ -2156,7 +2156,7 @@ const AppContent: React.FC = () => {
         {renderContent()}
       </Layout>
 
-      {role === 'PORTEIRO' && <DraggableFab onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} />}
+      {(role === 'PORTEIRO' || role === 'SINDICO') && <DraggableFab onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} />}
 
       {/* TOAST NOTIFICATIONS */}
       <toast.ToastContainer />
