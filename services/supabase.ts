@@ -79,29 +79,38 @@ if (typeof window !== 'undefined') {
         // Filtrar erros de WebSocket do Supabase Realtime (todos os casos comuns)
         const isWebSocketError = 
             allMessages.includes('websocket connection') || 
-            (allMessages.includes('wss://') && allMessages.includes('supabase.co')) ||
+            allMessages.includes('websocket connection to') ||
+            (allMessages.includes('wss://') && (allMessages.includes('supabase.co') || allMessages.includes('supabase'))) ||
             allMessages.includes('createwebsocket') ||
-            (allMessages.includes('websocket') && allMessages.includes('failed')) ||
+            allMessages.includes('createwebsocket@') ||
+            (allMessages.includes('websocket') && (allMessages.includes('failed') || allMessages.includes('fail'))) ||
             (allMessages.includes('realtime') && allMessages.includes('websocket')) ||
             allMessages.includes('websocket is already in closing or closed state') ||
             allMessages.includes('websocket is already in closing') ||
             allMessages.includes('already in closing') ||
             allMessages.includes('already in closed state') ||
             (allMessages.includes('websocket') && allMessages.includes('closing')) ||
-            (allMessages.includes('websocket') && allMessages.includes('closed'));
+            (allMessages.includes('websocket') && allMessages.includes('closed')) ||
+            // Verificar se contém a URL do Supabase WebSocket
+            (allMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co') && allMessages.includes('realtime'));
 
         // Filtrar erros 429 (quota exceeded) do Gemini API - já são tratados e mostrados ao usuário
         const isQuotaError = 
             allMessages.includes('error in handlesendmessage') ||
+            allMessages.includes('error in handlegeneratereport') ||
             allMessages.includes('exceeded your current quota') ||
             allMessages.includes('quota exceeded') ||
             allMessages.includes('429') ||
             allMessages.includes('resource_exhausted') ||
             allMessages.includes('resouce_exhausted') ||
+            allMessages.includes('too many requests') ||
             (allMessages.includes('code') && allMessages.includes('429')) ||
             (allMessages.includes('apierror') && allMessages.includes('429')) ||
             allMessages.includes('generativelanguage.googleapis.com') ||
-            (allMessages.includes('gemini') && allMessages.includes('429'));
+            (allMessages.includes('gemini') && (allMessages.includes('429') || allMessages.includes('quota'))) ||
+            // Capturar erros 429 que aparecem na URL da requisição
+            (allMessages.includes('generativelanguage.googleapis.com/v1beta/models/gemini') && allMessages.includes('429')) ||
+            (allMessages.includes('generatecontent') && allMessages.includes('429'));
 
         if (isWebSocketError || isQuotaError) {
             // Não logar - são erros esperados e não críticos
@@ -110,23 +119,45 @@ if (typeof window !== 'undefined') {
         originalError.apply(console, args);
     };
 
-    // Também capturar erros não tratados de WebSocket
+    // Também capturar erros não tratados de WebSocket e 429
     window.addEventListener('error', (event) => {
-        const message = (event.message || '').toLowerCase();
-        if ((message.includes('websocket') && message.includes('supabase')) ||
+        const message = (event.message || event.filename || '').toLowerCase();
+        const isWebSocketError = 
+            (message.includes('websocket') && (message.includes('supabase') || message.includes('wss://'))) ||
             message.includes('websocket is already in closing') ||
-            message.includes('already in closing or closed')) {
+            message.includes('already in closing or closed') ||
+            message.includes('zaemlxjwhzrfmowbckmk.supabase.co');
+        const isQuotaError = 
+            message.includes('429') ||
+            message.includes('quota exceeded') ||
+            message.includes('generativelanguage.googleapis.com');
+        
+        if (isWebSocketError || isQuotaError) {
             event.preventDefault();
             return false;
         }
     }, true);
 
-    // Capturar também erros de unhandled promise rejection relacionados a WebSocket
+    // Capturar também erros de unhandled promise rejection relacionados a WebSocket e 429
     window.addEventListener('unhandledrejection', (event) => {
-        const message = (event.reason?.message || String(event.reason) || '').toLowerCase();
-        if ((message.includes('websocket') && message.includes('supabase')) ||
-            message.includes('websocket is already in closing') ||
-            message.includes('already in closing or closed')) {
+        const reason = event.reason || {};
+        const message = (reason?.message || String(reason) || '').toLowerCase();
+        const stack = (reason?.stack || '').toLowerCase();
+        const allMessage = message + ' ' + stack;
+        
+        const isWebSocketError = 
+            (allMessage.includes('websocket') && (allMessage.includes('supabase') || allMessage.includes('wss://'))) ||
+            allMessage.includes('websocket is already in closing') ||
+            allMessage.includes('already in closing or closed') ||
+            allMessage.includes('zaemlxjwhzrfmowbckmk.supabase.co');
+        const isQuotaError = 
+            allMessage.includes('429') ||
+            allMessage.includes('quota exceeded') ||
+            allMessage.includes('resource_exhausted') ||
+            allMessage.includes('generativelanguage.googleapis.com') ||
+            (allMessage.includes('gemini') && allMessage.includes('429'));
+        
+        if (isWebSocketError || isQuotaError) {
             event.preventDefault();
             return false;
         }
