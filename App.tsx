@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Login from './components/Login';
 import ScreenSaver from './components/ScreenSaver';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AppConfigProvider } from './contexts/AppConfigContext';
 import { UserRole, Package, Resident, Note, VisitorLog, PackageItem, Occurrence, Notice, ChatMessage } from './types';
 import DashboardView from './components/views/DashboardView';
 import SindicoDashboardView from './components/views/SindicoDashboardView';
@@ -3484,7 +3485,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <AppConfigProvider>
+        <AppContent />
+      </AppConfigProvider>
     </AuthProvider>
   );
 };
