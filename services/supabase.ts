@@ -1,4 +1,83 @@
 
+// Aplicar filtros de console ANTES de importar qualquer coisa que possa gerar logs
+if (typeof window !== 'undefined') {
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    const shouldFilterMessage = (messages: string): boolean => {
+        const lowerMessages = messages.toLowerCase();
+        
+        // Filtrar erros de WebSocket do Supabase Realtime
+        const isWebSocketError = 
+            lowerMessages.includes('websocket connection') || 
+            lowerMessages.includes('websocket connection to') ||
+            (lowerMessages.includes('wss://') && (lowerMessages.includes('supabase.co') || lowerMessages.includes('supabase'))) ||
+            lowerMessages.includes('createwebsocket') ||
+            lowerMessages.includes('createwebsocket@') ||
+            lowerMessages.includes('@ index-') || // Capturar stack traces do código compilado
+            (lowerMessages.includes('websocket') && (lowerMessages.includes('failed') || lowerMessages.includes('fail'))) ||
+            (lowerMessages.includes('realtime') && lowerMessages.includes('websocket')) ||
+            lowerMessages.includes('websocket is already in closing or closed state') ||
+            lowerMessages.includes('websocket is already in closing') ||
+            lowerMessages.includes('already in closing') ||
+            lowerMessages.includes('already in closed state') ||
+            (lowerMessages.includes('websocket') && lowerMessages.includes('closing')) ||
+            (lowerMessages.includes('websocket') && lowerMessages.includes('closed')) ||
+            lowerMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co') ||
+            // Capturar especificamente o padrão que aparece no console
+            (lowerMessages.includes('wss://zaemlxjwhzrfmowbckmk.supabase.co/realtime/v1/websocket'));
+        
+        // Filtrar erros 429 (quota exceeded) do Gemini API
+        const isQuotaError = 
+            lowerMessages.includes('error in handlesendmessage') ||
+            lowerMessages.includes('error in handlegeneratereport') ||
+            lowerMessages.includes('exceeded your current quota') ||
+            lowerMessages.includes('quota exceeded') ||
+            (lowerMessages.includes('429') && (lowerMessages.includes('too many requests') || lowerMessages.includes('resource'))) ||
+            lowerMessages.includes('resource_exhausted') ||
+            lowerMessages.includes('too many requests') ||
+            lowerMessages.includes('generativelanguage.googleapis.com');
+        
+        return isWebSocketError || isQuotaError;
+    };
+    
+    console.error = (...args: any[]) => {
+        const allMessages = args.map(arg => {
+            if (typeof arg === 'string') return arg;
+            if (arg?.toString) return arg.toString();
+            if (arg?.message) return arg.message;
+            if (arg?.stack) return arg.stack;
+            try {
+                return JSON.stringify(arg);
+            } catch {
+                return String(arg);
+            }
+        }).join(' ');
+        
+        if (!shouldFilterMessage(allMessages)) {
+            originalError.apply(console, args);
+        }
+    };
+    
+    console.warn = (...args: any[]) => {
+        const allMessages = args.map(arg => {
+            if (typeof arg === 'string') return arg;
+            if (arg?.toString) return arg.toString();
+            if (arg?.message) return arg.message;
+            if (arg?.stack) return arg.stack;
+            try {
+                return JSON.stringify(arg);
+            } catch {
+                return String(arg);
+            }
+        }).join(' ');
+        
+        if (!shouldFilterMessage(allMessages)) {
+            originalWarn.apply(console, args);
+        }
+    };
+}
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -58,67 +137,8 @@ export const supabase = createClient(
     }
 );
 
-// Silenciar erros de WebSocket do Supabase que são comuns e não afetam a funcionalidade
-// Esses erros aparecem quando o Realtime não está configurado ou há problemas de conexão
+// Event listeners para capturar erros não tratados (já aplicados no topo do arquivo)
 if (typeof window !== 'undefined') {
-    const originalError = console.error;
-    console.error = (...args: any[]) => {
-        // Verificar todos os argumentos para encontrar mensagens de WebSocket
-        const allMessages = args.map(arg => {
-            if (typeof arg === 'string') return arg;
-            if (arg?.toString) return arg.toString();
-            if (arg?.message) return arg.message;
-            if (arg?.stack) return arg.stack;
-            try {
-                return JSON.stringify(arg);
-            } catch {
-                return String(arg);
-            }
-        }).join(' ').toLowerCase();
-
-        // Filtrar erros de WebSocket do Supabase Realtime (todos os casos comuns)
-        const isWebSocketError = 
-            allMessages.includes('websocket connection') || 
-            allMessages.includes('websocket connection to') ||
-            (allMessages.includes('wss://') && (allMessages.includes('supabase.co') || allMessages.includes('supabase'))) ||
-            allMessages.includes('createwebsocket') ||
-            allMessages.includes('createwebsocket@') ||
-            (allMessages.includes('websocket') && (allMessages.includes('failed') || allMessages.includes('fail'))) ||
-            (allMessages.includes('realtime') && allMessages.includes('websocket')) ||
-            allMessages.includes('websocket is already in closing or closed state') ||
-            allMessages.includes('websocket is already in closing') ||
-            allMessages.includes('already in closing') ||
-            allMessages.includes('already in closed state') ||
-            (allMessages.includes('websocket') && allMessages.includes('closing')) ||
-            (allMessages.includes('websocket') && allMessages.includes('closed')) ||
-            // Verificar se contém a URL do Supabase WebSocket
-            (allMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co') && allMessages.includes('realtime'));
-
-        // Filtrar erros 429 (quota exceeded) do Gemini API - já são tratados e mostrados ao usuário
-        const isQuotaError = 
-            allMessages.includes('error in handlesendmessage') ||
-            allMessages.includes('error in handlegeneratereport') ||
-            allMessages.includes('exceeded your current quota') ||
-            allMessages.includes('quota exceeded') ||
-            allMessages.includes('429') ||
-            allMessages.includes('resource_exhausted') ||
-            allMessages.includes('resouce_exhausted') ||
-            allMessages.includes('too many requests') ||
-            (allMessages.includes('code') && allMessages.includes('429')) ||
-            (allMessages.includes('apierror') && allMessages.includes('429')) ||
-            allMessages.includes('generativelanguage.googleapis.com') ||
-            (allMessages.includes('gemini') && (allMessages.includes('429') || allMessages.includes('quota'))) ||
-            // Capturar erros 429 que aparecem na URL da requisição
-            (allMessages.includes('generativelanguage.googleapis.com/v1beta/models/gemini') && allMessages.includes('429')) ||
-            (allMessages.includes('generatecontent') && allMessages.includes('429'));
-
-        if (isWebSocketError || isQuotaError) {
-            // Não logar - são erros esperados e não críticos
-            return;
-        }
-        originalError.apply(console, args);
-    };
-
     // Também capturar erros não tratados de WebSocket e 429
     window.addEventListener('error', (event) => {
         const message = (event.message || event.filename || '').toLowerCase();
