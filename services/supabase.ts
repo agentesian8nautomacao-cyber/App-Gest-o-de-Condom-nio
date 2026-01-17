@@ -84,13 +84,29 @@ if (typeof window !== 'undefined') {
             }
         }).join(' ');
         
-        // Também verificar os argumentos originais individualmente para capturar melhor
+        // Verificar cada argumento individualmente para capturar melhor
         const hasWebSocketInArgs = args.some(arg => {
             const str = String(arg || '').toLowerCase();
-            return str.includes('websocket') && str.includes('zaemlxjwhzrfmowbckmk.supabase.co');
+            // Capturar qualquer mensagem que contenha WebSocket + URL do Supabase
+            return (str.includes('websocket') && (str.includes('zaemlxjwhzrfmowbckmk.supabase.co') || str.includes('supabase.co'))) ||
+                   (str.includes('wss://') && str.includes('supabase.co')) ||
+                   (str.includes('websocket') && str.includes('failed')) ||
+                   (str.includes('websocket connection to') && str.includes('realtime'));
         });
         
-        if (!shouldFilterMessage(allMessages) && !hasWebSocketInArgs) {
+        // Verificar também se algum dos argumentos contém o padrão do stack trace
+        const hasWebSocketStack = args.some(arg => {
+            const str = String(arg || '').toLowerCase();
+            // Capturar stack traces específicos que aparecem no erro
+            return (str.includes('index-') && str.includes('.js:491') && (str.includes('createwebsocket') || str.includes('websocket') || str.includes('supabase'))) ||
+                   (str.includes('index-') && str.includes('.js:496') && (str.includes('connect') || str.includes('websocket') || str.includes('supabase'))) ||
+                   (str.includes('index-') && str.includes('.js:509')) ||
+                   (str.includes('index-') && str.includes('.js:528') && (str.includes('subscribe') || str.includes('websocket') || str.includes('supabase'))) ||
+                   // Capturar qualquer stack trace que contenha o domínio do Supabase
+                   (str.includes('index-') && str.includes('.js:') && str.includes('zaemlxjwhzrfmowbckmk.supabase.co'));
+        });
+        
+        if (!shouldFilterMessage(allMessages) && !hasWebSocketInArgs && !hasWebSocketStack) {
             originalError.apply(console, args);
         }
     };

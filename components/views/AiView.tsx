@@ -195,7 +195,22 @@ ${voiceSettings.style === 'serious'
     setIsProcessing(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        const errorMsg: ChatMessage = {
+          id: `error-${Date.now()}`,
+          role: 'model',
+          text: '⚠️ Erro: Chave da API do Gemini não configurada. Verifique a variável de ambiente GEMINI_API_KEY no arquivo .env e reinicie o servidor.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMsg]);
+        toast.error('Chave da API não configurada. Verifique o arquivo .env');
+        setIsProcessing(false);
+        return;
+      }
+      
+      const ai = new GoogleGenAI({ apiKey });
       const context = getSystemContext();
       const persona = getSystemPersona();
       
@@ -207,10 +222,17 @@ ${voiceSettings.style === 'serious'
         config: { temperature: 0.7 }
       });
 
+      // Verificar se a resposta tem conteúdo válido
+      const responseText = response?.text || response?.response?.text || null;
+      
+      if (!responseText) {
+        throw new Error('Resposta vazia da API. A chave da API pode estar inválida ou sem quota.');
+      }
+
       const modelMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: response.text || "Sem resposta.",
+        text: responseText,
         timestamp: new Date()
       };
 
