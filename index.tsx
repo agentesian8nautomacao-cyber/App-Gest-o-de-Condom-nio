@@ -64,25 +64,36 @@ if (typeof window !== 'undefined') {
             }
         }).join(' ');
         
-        // Também verificar os argumentos originais individualmente para capturar melhor
+        // Verificar cada argumento individualmente ANTES de verificar a mensagem completa
+        // Isso é crítico porque o erro pode estar em um argumento específico
         const hasWebSocketInArgs = args.some(arg => {
             const str = String(arg || '').toLowerCase();
-            // Capturar qualquer mensagem que contenha WebSocket + URL do Supabase
-            return (str.includes('websocket') && str.includes('zaemlxjwhzrfmowbckmk.supabase.co')) ||
+            // Capturar QUALQUER mensagem que contenha WebSocket + URL do Supabase
+            // OU apenas WebSocket connection + failed (padrão mais comum)
+            return (str.includes('websocket connection') && (str.includes('zaemlxjwhzrfmowbckmk.supabase.co') || str.includes('supabase.co') || str.includes('wss://') || str.includes('failed'))) ||
+                   (str.includes('websocket') && str.includes('zaemlxjwhzrfmowbckmk.supabase.co')) ||
                    (str.includes('wss://') && str.includes('supabase.co')) ||
-                   (str.includes('websocket') && str.includes('failed'));
+                   (str.includes('websocket') && str.includes('failed') && (str.includes('supabase') || str.includes('wss://')));
         });
         
         // Verificar também se algum dos argumentos contém o padrão do stack trace
+        // Capturar QUALQUER linha index-*.js:491 que apareça, mesmo sem palavras-chave adicionais
         const hasWebSocketStack = args.some(arg => {
             const str = String(arg || '').toLowerCase();
-            return (str.includes('index-') && str.includes('.js:491') && str.includes('createwebsocket')) ||
-                   (str.includes('index-') && str.includes('.js:496') && str.includes('connect')) ||
+            // Capturar QUALQUER ocorrência de index-*.js:491, 496, 509, 528 - são sempre relacionados ao Supabase WebSocket
+            return (str.includes('index-') && str.includes('.js:491')) ||
+                   (str.includes('index-') && str.includes('.js:496')) ||
                    (str.includes('index-') && str.includes('.js:509')) ||
                    (str.includes('index-') && str.includes('.js:528'));
         });
         
-        if (!shouldFilterMessage(allMessages) && !hasWebSocketInArgs && !hasWebSocketStack) {
+        // Se detectamos WebSocket nos argumentos ou no stack, filtrar IMEDIATAMENTE
+        if (hasWebSocketInArgs || hasWebSocketStack) {
+            return; // Não logar nada
+        }
+        
+        // Verificar a mensagem completa combinada
+        if (!shouldFilterMessage(allMessages)) {
             originalError.apply(console, args);
         }
     };

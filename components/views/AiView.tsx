@@ -222,11 +222,13 @@ ${voiceSettings.style === 'serious'
         config: { temperature: 0.7 }
       });
 
-      // Verificar se a resposta tem conteúdo válido
-      const responseText = response?.text || response?.response?.text || null;
+      // A resposta.text é uma string diretamente
+      const responseText = response?.text;
       
-      if (!responseText) {
-        throw new Error('Resposta vazia da API. A chave da API pode estar inválida ou sem quota.');
+      if (!responseText || responseText.trim() === '') {
+        // Log para debug (não será visível devido aos filtros de console)
+        console.warn('Resposta da API sem texto ou vazia');
+        throw new Error('Resposta vazia da API. A chave da API pode estar inválida ou sem quota disponível. Verifique a configuração da chave no arquivo .env (local) ou nas variáveis de ambiente do Vercel (produção).');
       }
 
       const modelMsg: ChatMessage = {
