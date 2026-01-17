@@ -62,30 +62,46 @@ export const useNotices = () => {
     fetchNotices();
     fetchChatMessages();
 
-    // Real-time subscriptions
-    const noticesChannel = supabase
-      .channel('notices-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'notices' },
-        () => {
-          fetchNotices();
-        }
-      )
-      .subscribe();
+    // Real-time subscriptions (com tratamento de erro)
+    let noticesChannel: any = null;
+    let chatChannel: any = null;
+    
+    try {
+      noticesChannel = supabase
+        .channel('notices-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'notices' },
+          () => {
+            fetchNotices();
+          }
+        )
+        .subscribe();
 
-    const chatChannel = supabase
-      .channel('chat-messages-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'chat_messages' },
-        () => {
-          fetchChatMessages();
-        }
-      )
-      .subscribe();
+      chatChannel = supabase
+        .channel('chat-messages-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'chat_messages' },
+          () => {
+            fetchChatMessages();
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      // Silenciar erros de Realtime - não críticos
+      console.debug('Realtime subscription error (non-critical):', error);
+    }
 
     return () => {
-      supabase.removeChannel(noticesChannel);
-      supabase.removeChannel(chatChannel);
+      try {
+        if (noticesChannel) {
+          supabase.removeChannel(noticesChannel);
+        }
+        if (chatChannel) {
+          supabase.removeChannel(chatChannel);
+        }
+      } catch (error) {
+        // Silenciar erros ao remover canais
+      }
     };
   }, []);
 

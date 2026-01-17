@@ -72,19 +72,31 @@ export const useReservations = () => {
     fetchAreas();
     fetchReservations();
 
-    // Real-time subscription
-    const channel = supabase
-      .channel('reservations-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'reservations' },
-        () => {
-          fetchReservations();
-        }
-      )
-      .subscribe();
+    // Real-time subscription (com tratamento de erro)
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel('reservations-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'reservations' },
+          () => {
+            fetchReservations();
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      // Silenciar erros de Realtime - não críticos
+      console.debug('Realtime subscription error (non-critical):', error);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      } catch (error) {
+        // Silenciar erros ao remover canal
+      }
     };
   }, []);
 

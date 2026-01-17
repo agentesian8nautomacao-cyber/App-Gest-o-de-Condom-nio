@@ -27,6 +27,7 @@ if (supabaseAnonKey) {
 }
 
 // Configuração do cliente Supabase com tratamento de erros melhorado
+// Realtime está configurado, mas os erros de conexão serão silenciados
 export const supabase = createClient(
     supabaseUrl || '',
     supabaseAnonKey || '',
@@ -36,7 +37,11 @@ export const supabase = createClient(
                 eventsPerSecond: 10
             },
             heartbeatIntervalMs: 30000,
-            reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000),
+            reconnectAfterMs: (tries: number) => {
+                // Reduzir tentativas de reconexão após 5 tentativas
+                if (tries > 5) return 60000; // 1 minuto após 5 tentativas
+                return Math.min(tries * 1000, 30000);
+            },
             timeout: 20000
         },
         auth: {
@@ -71,13 +76,19 @@ if (typeof window !== 'undefined') {
             }
         }).join(' ').toLowerCase();
 
-        // Filtrar erros de WebSocket do Supabase Realtime (casos comuns)
+        // Filtrar erros de WebSocket do Supabase Realtime (todos os casos comuns)
         const isWebSocketError = 
             allMessages.includes('websocket connection') || 
             (allMessages.includes('wss://') && allMessages.includes('supabase.co')) ||
             allMessages.includes('createwebsocket') ||
-            (allMessages.includes('websocket') && allMessages.includes('failed') && allMessages.includes('supabase')) ||
-            (allMessages.includes('realtime') && allMessages.includes('websocket'));
+            (allMessages.includes('websocket') && allMessages.includes('failed')) ||
+            (allMessages.includes('realtime') && allMessages.includes('websocket')) ||
+            allMessages.includes('websocket is already in closing or closed state') ||
+            allMessages.includes('websocket is already in closing') ||
+            allMessages.includes('already in closing') ||
+            allMessages.includes('already in closed state') ||
+            (allMessages.includes('websocket') && allMessages.includes('closing')) ||
+            (allMessages.includes('websocket') && allMessages.includes('closed'));
 
         if (isWebSocketError) {
             // Não logar - são erros esperados e não críticos quando Realtime não está configurado
@@ -85,4 +96,26 @@ if (typeof window !== 'undefined') {
         }
         originalError.apply(console, args);
     };
+
+    // Também capturar erros não tratados de WebSocket
+    window.addEventListener('error', (event) => {
+        const message = (event.message || '').toLowerCase();
+        if ((message.includes('websocket') && message.includes('supabase')) ||
+            message.includes('websocket is already in closing') ||
+            message.includes('already in closing or closed')) {
+            event.preventDefault();
+            return false;
+        }
+    }, true);
+
+    // Capturar também erros de unhandled promise rejection relacionados a WebSocket
+    window.addEventListener('unhandledrejection', (event) => {
+        const message = (event.reason?.message || String(event.reason) || '').toLowerCase();
+        if ((message.includes('websocket') && message.includes('supabase')) ||
+            message.includes('websocket is already in closing') ||
+            message.includes('already in closing or closed')) {
+            event.preventDefault();
+            return false;
+        }
+    });
 }

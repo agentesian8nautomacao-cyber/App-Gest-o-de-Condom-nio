@@ -49,20 +49,32 @@ export const useCrmIssues = () => {
   useEffect(() => {
     fetchIssues();
 
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('crm-issues-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'crm_issues' },
-        () => {
-          fetchIssues();
-        }
-      )
-      .subscribe();
+    // Subscribe to real-time changes (com tratamento de erro)
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel('crm-issues-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'crm_issues' },
+          () => {
+            fetchIssues();
+          }
+        )
+        .subscribe();
+    } catch (error) {
+      // Silenciar erros de Realtime - não críticos
+      console.debug('Realtime subscription error (non-critical):', error);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      } catch (error) {
+        // Silenciar erros ao remover canal
+      }
     };
   }, []);
 
