@@ -84,6 +84,17 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
                         (error?.error?.message && error.error.message.includes('exceeded your current quota'));
     
     if (isQuotaError) {
+      // Verificar se é erro específico de modelo sem quota (limit: 0)
+      const errorMessage = error?.error?.message || error?.message || '';
+      const isModelQuotaIssue = errorMessage.includes('limit: 0') || errorMessage.includes('FreeTier');
+      
+      if (isModelQuotaIssue) {
+        return {
+          shouldRetry: false,
+          message: '⚠️ O modelo selecionado não está disponível no seu plano gratuito.\n\nO sistema já foi atualizado para usar um modelo compatível. Por favor, recarregue a página (F5) e tente novamente.\n\nSe o problema persistir, verifique seu plano do Google Gemini API:\n• https://ai.google.dev/pricing'
+        };
+      }
+      
       const details = error?.error?.details || error?.details || [];
       const retryInfo = details.find((d: any) => 
         d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' || 
@@ -155,8 +166,10 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
         ${allNotes.filter(n => !n.completed).map(n => `- ${n.content} (${n.category || 'Geral'})`).join('\n')}
       `;
 
+      // Usar gemini-2.0-flash-exp que tem melhor disponibilidade no FreeTier
+      // gemini-3-pro tem limit: 0 no FreeTier, causando erro 429
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.0-flash-exp',
         contents: `
           Atue como um Especialista em Gestão Condominial Sênior (Síndico Profissional).
           Analise os dados brutos abaixo coletados pelo sistema de portaria e gere um RELATÓRIO EXECUTIVO PARA ASSEMBLEIA.
@@ -234,9 +247,32 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
       
       const errorInfo = handleApiError(parsedError, retryCount);
       
+      // Garantir que a mensagem seja sempre uma string formatada, nunca JSON bruto
+      let formattedMessage = errorInfo.message || 'Erro ao gerar relatório. Por favor, tente novamente.';
+      
+      // Se a mensagem contém JSON bruto, extrair apenas a mensagem útil
+      if (formattedMessage.includes('{"error":') || formattedMessage.includes('"code":')) {
+        try {
+          // Tentar extrair mensagem do JSON se possível
+          const jsonMatch = formattedMessage.match(/"message"\s*:\s*"([^"]+)"/);
+          if (jsonMatch && jsonMatch[1]) {
+            formattedMessage = jsonMatch[1];
+          } else {
+            formattedMessage = 'Erro ao gerar relatório. Por favor, verifique sua conexão e tente novamente.';
+          }
+        } catch {
+          formattedMessage = 'Erro ao gerar relatório. Por favor, verifique sua conexão e tente novamente.';
+        }
+      }
+      
+      // Limpar mensagens de erro muito longas
+      if (formattedMessage.length > 500) {
+        formattedMessage = 'Erro ao gerar relatório. Por favor, verifique sua conexão e tente novamente.';
+      }
+      
       if (errorInfo.shouldRetry && errorInfo.retryDelay) {
         // Mostrar toast informativo
-        toast.warning(errorInfo.message || 'Aguardando antes de tentar novamente...');
+        toast.warning(formattedMessage || 'Aguardando antes de tentar novamente...');
         
         // Retry após delay (manter isGenerating como true durante o retry)
         setTimeout(() => {
@@ -245,12 +281,8 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
         return; // Não chamar setIsGenerating(false) aqui, pois vamos tentar novamente
       }
       
-      // Erro final - mostrar mensagem formatada ao usuário
-      const errorMessage = errorInfo.message || 'Erro ao conectar com a Inteligência Artificial. Verifique sua conexão e tente novamente.';
-      
-      // Garantir que não seja o objeto JSON completo
-      const cleanMessage = typeof errorMessage === 'string' 
-        ? errorMessage 
+      // Erro final - usar mensagem formatada
+      const cleanMessage = formattedMessage 
         : 'Erro ao gerar relatório. Por favor, tente novamente.';
       
       // Limpar qualquer JSON que possa estar no conteúdo

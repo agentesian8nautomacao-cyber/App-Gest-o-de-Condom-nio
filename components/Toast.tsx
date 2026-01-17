@@ -46,7 +46,9 @@ const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
     <div className={`animate-in slide-in-from-right fade-in duration-300 mb-3 premium-glass rounded-[24px] p-4 border ${colors[toast.type]} flex items-start gap-3 shadow-xl max-w-md`}>
       <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-tight">{toast.message}</p>
+        <p className="text-sm font-medium leading-tight break-words whitespace-pre-wrap">
+          {toast.message}
+        </p>
       </div>
       <button
         onClick={() => onClose(toast.id)}

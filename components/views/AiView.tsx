@@ -147,6 +147,17 @@ ${voiceSettings.style === 'serious'
                         (error?.error?.message && error.error.message.includes('exceeded your current quota'));
     
     if (isQuotaError) {
+      // Verificar se é erro específico de modelo sem quota (limit: 0)
+      const errorMessage = error?.error?.message || error?.message || '';
+      const isModelQuotaIssue = errorMessage.includes('limit: 0') || errorMessage.includes('FreeTier');
+      
+      if (isModelQuotaIssue) {
+        return {
+          shouldRetry: false,
+          message: '⚠️ O modelo selecionado não está disponível no seu plano gratuito.\n\nO sistema já foi atualizado para usar um modelo compatível. Por favor, recarregue a página (F5) e tente novamente.\n\nSe o problema persistir, verifique seu plano do Google Gemini API:\n• https://ai.google.dev/pricing'
+        };
+      }
+      
       const details = error?.error?.details || error?.details || [];
       const retryInfo = details.find((d: any) => 
         d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' || 
@@ -167,7 +178,7 @@ ${voiceSettings.style === 'serious'
       
       return {
         shouldRetry: false,
-        message: 'Cota diária da API Gemini excedida. Por favor, aguarde algumas horas ou atualize seu plano da API do Google.\n\nPara mais informações:\n• https://ai.google.dev/gemini-api/docs/rate-limits\n• https://ai.dev/rate-limit'
+        message: '⚠️ Cota diária da API Gemini excedida.\n\nPor favor, aguarde algumas horas ou atualize seu plano da API do Google.\n\nPara mais informações:\n• https://ai.google.dev/gemini-api/docs/rate-limits\n• https://ai.dev/rate-limit'
       };
     }
     
@@ -214,8 +225,10 @@ ${voiceSettings.style === 'serious'
       const context = getSystemContext();
       const persona = getSystemPersona();
       
+      // Usar gemini-2.0-flash-exp ou gemini-1.5-flash que têm melhor disponibilidade no FreeTier
+      // gemini-3-pro tem limit: 0 no FreeTier, causando erro 429
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.0-flash-exp',
         contents: [
           { role: 'user', parts: [{ text: `${persona}\n\nCONTEXTO EM TEMPO REAL:\n${context}\n\nSOLICITAÇÃO DO USUÁRIO:\n${userInput}` }] }
         ],
@@ -260,9 +273,27 @@ ${voiceSettings.style === 'serious'
       
       const errorInfo = handleApiError(error, retryCount);
       
+      // Garantir que a mensagem seja sempre uma string formatada, nunca JSON bruto
+      let formattedMessage = errorInfo.message || 'Não foi possível processar sua solicitação.';
+      
+      // Se a mensagem contém JSON bruto, extrair apenas a mensagem útil
+      if (formattedMessage.includes('{"error":') || formattedMessage.includes('"code":')) {
+        try {
+          // Tentar extrair mensagem do JSON se possível
+          const jsonMatch = formattedMessage.match(/"message"\s*:\s*"([^"]+)"/);
+          if (jsonMatch && jsonMatch[1]) {
+            formattedMessage = jsonMatch[1];
+          } else {
+            formattedMessage = 'Erro ao processar sua solicitação. Verifique sua conexão e tente novamente.';
+          }
+        } catch {
+          formattedMessage = 'Erro ao processar sua solicitação. Verifique sua conexão e tente novamente.';
+        }
+      }
+      
       if (errorInfo.shouldRetry && errorInfo.retryDelay) {
         // Mostrar toast informativo
-        toast.warning(errorInfo.message || 'Aguardando antes de tentar novamente...');
+        toast.warning(formattedMessage || 'Aguardando antes de tentar novamente...');
         
         // Retry após delay
         setTimeout(() => {
@@ -275,17 +306,17 @@ ${voiceSettings.style === 'serious'
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: 'model',
-        text: `⚠️ Erro: ${errorInfo.message || 'Não foi possível processar sua solicitação.'}`,
+        text: `⚠️ Erro: ${formattedMessage}`,
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMsg]);
       
-      // Mostrar toast de erro
-      if (errorInfo.message?.includes('Cota diária')) {
+      // Mostrar toast de erro com mensagem formatada
+      if (formattedMessage.includes('Cota') || formattedMessage.includes('quota')) {
         toast.error('Cota da API excedida. Verifique seu plano do Google Gemini API.');
       } else {
-        toast.error(errorInfo.message || 'Erro ao processar mensagem');
+        toast.error(formattedMessage);
       }
     } finally {
       setIsProcessing(false);
