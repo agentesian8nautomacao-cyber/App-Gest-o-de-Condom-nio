@@ -214,10 +214,11 @@ ${voiceSettings.style === 'serious'
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, modelMsg]);
-      
-      // Limpar qualquer mensagem de erro anterior
-      setMessages(prev => prev.filter(m => !m.text.includes('⚠️ Erro')));
+      // Remover mensagens de erro anteriores antes de adicionar resposta
+      setMessages(prev => {
+        const filtered = prev.filter(m => !m.text.includes('⚠️'));
+        return [...filtered, modelMsg];
+      });
     } catch (error: any) {
       // Não logar erros de quota (429) no console - já estão sendo tratados e mostrados ao usuário
       if (!(error?.error?.code === 429) && !(error?.code === 429) && !(error?.status === 'RESOURCE_EXHAUSTED')) {
