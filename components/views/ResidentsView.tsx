@@ -59,7 +59,8 @@ const ResidentsView: React.FC<ResidentsViewProps> = ({
           )}
           <button 
             onClick={() => handleOpenResidentModal()} 
-            className="px-6 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-2"
+            className="px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-2"
+            style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
           >
             <UserPlus className="w-4 h-4" /> Novo Morador
           </button>
@@ -124,7 +125,8 @@ const ResidentsView: React.FC<ResidentsViewProps> = ({
                  {resident.email && (
                    <button 
                      onClick={(e) => { e.stopPropagation(); window.open(`mailto:${resident.email}`, '_blank'); }}
-                     className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white hover:text-black transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2"
+                     className="flex-1 py-3 rounded-xl transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2"
+                     style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
                    >
                      <Mail className="w-3 h-3" /> Email
                    </button>

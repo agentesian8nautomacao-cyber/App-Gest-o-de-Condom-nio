@@ -41,7 +41,7 @@ const PackagesView: React.FC<PackagesViewProps> = ({
                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-full text-xs font-bold outline-none focus:border-white/30 transition-all placeholder:opacity-20"
              />
           </div>
-          <button onClick={() => setIsNewPackageModalOpen(true)} className="px-6 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap"><Plus className="w-4 h-4 inline mr-2" /> Novo Registro</button>
+          <button onClick={() => setIsNewPackageModalOpen(true)} className="px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-2" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}><Plus className="w-4 h-4" /> Novo Registro</button>
         </div>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

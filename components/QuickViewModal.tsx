@@ -36,58 +36,60 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const isClickable = category === 'packages' || category === 'visitors' || category === 'occurrences' || category === 'notes' || category === 'notices';
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 md:p-6">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white text-black rounded-[40px] shadow-2xl p-8 md:p-10 animate-in zoom-in duration-300">
-        <header className="flex justify-between items-start mb-8">
-          <div className="flex items-center gap-4">
-            <div className={`p-4 rounded-3xl bg-zinc-50 ${config.color}`}>
-              <config.icon className="w-6 h-6" />
+      <div className="relative w-full max-w-lg premium-glass rounded-[32px] md:rounded-[40px] shadow-2xl p-6 md:p-8 lg:p-10 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto border border-[var(--border-color)]">
+        <header className="flex justify-between items-start gap-4 mb-6 md:mb-8">
+          <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+            <div className={`p-3 md:p-4 rounded-2xl md:rounded-3xl flex-shrink-0 ${config.color}`} style={{ backgroundColor: 'var(--glass-bg)' }}>
+              <config.icon className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <div>
-              <h4 className="text-2xl font-black uppercase tracking-tight">{config.title}</h4>
-              <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest">Visualização Rápida</p>
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>{config.title}</h4>
+              <p className="text-xs md:text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Visualização Rápida</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {category === 'visitors' && onAddNew && (
               <button 
                 onClick={onAddNew}
-                className="px-4 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap"
+                className="px-3 md:px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform flex items-center gap-2 whitespace-nowrap active:scale-95 min-h-[44px]"
+                style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
               >
-                <Plus className="w-4 h-4" /> Novo Acesso
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Novo Acesso</span>
               </button>
             )}
-            <button onClick={onClose} className="p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all"><X className="w-5 h-5"/></button>
+            <button onClick={onClose} className="p-2.5 md:p-3 rounded-xl md:rounded-2xl hover:opacity-70 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center" style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}><X className="w-5 h-5"/></button>
           </div>
         </header>
 
-        <div className="space-y-3 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+        <div className="space-y-3 mb-6 md:mb-8 max-h-[40vh] md:max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
           {data && data.length > 0 ? (
             data.map((item: any, idx: number) => (
               <div 
                 key={idx} 
                 onClick={() => isClickable ? onSelectItem(item) : null}
-                className={`p-5 bg-zinc-50 border border-black/5 rounded-3xl flex items-center justify-between group transition-all ${isClickable ? 'cursor-pointer hover:bg-zinc-100 hover:scale-[1.02] active:scale-95' : ''}`}
+                className={`p-4 md:p-5 bg-zinc-50 border border-black/5 rounded-2xl md:rounded-3xl flex items-center justify-between group transition-all gap-3 ${isClickable ? 'cursor-pointer hover:bg-zinc-100 hover:scale-[1.02] active:scale-95 min-h-[60px]' : ''}`}
               >
-                <div>
-                  <h6 className="font-black text-sm uppercase">{item.title || item.recipient || item.visitorNames || item.area || item.content || item.residentName}</h6>
-                  <p className="text-xs opacity-50 font-medium">{item.subtitle || (item.unit ? `Unidade ${item.unit}` : null) || item.date}</p>
+                <div className="min-w-0 flex-1">
+                  <h6 className="font-black text-sm md:text-base uppercase break-words">{item.title || item.recipient || item.visitorNames || item.area || item.content || item.residentName}</h6>
+                  <p className="text-xs md:text-sm opacity-50 font-medium break-words">{item.subtitle || (item.unit ? `Unidade ${item.unit}` : null) || item.date}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black opacity-30">{item.time || item.displayTime || ''}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                   <span className="text-xs md:text-[10px] font-black whitespace-nowrap" style={{ color: 'var(--text-secondary)', opacity: 0.6 }}>{item.time || item.displayTime || ''}</span>
                    
                    {category === 'notes' && onMarkAsDone && (
                      <button 
                        onClick={(e) => { e.stopPropagation(); onMarkAsDone(item); }}
-                       className="p-2 bg-white border border-zinc-200 rounded-full hover:bg-green-500 hover:text-white hover:border-green-500 transition-all mr-1 shadow-sm z-10"
+                       className="p-2 rounded-full hover:bg-green-500 hover:text-white transition-all mr-1 shadow-sm z-10 active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center border"
+                       style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                        title="Concluir"
                      >
                        <Check className="w-3 h-3" />
                      </button>
                    )}
 
-                   {isClickable && <ChevronRight className="w-4 h-4 opacity-10 group-hover:opacity-100 transition-opacity" />}
+                   {isClickable && <ChevronRight className="w-4 h-4 opacity-10 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />}
                 </div>
               </div>
             ))
@@ -100,9 +102,10 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
         <button 
           onClick={() => { onGoToPage(config.tab); onClose(); }}
-          className="w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+          className="w-full py-4 md:py-5 rounded-[20px] md:rounded-[24px] font-black uppercase text-xs md:text-[11px] tracking-widest shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all min-h-[52px]"
+          style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
         >
-          <LinkIcon className="w-4 h-4" /> Acessar Gestão Completa
+          <LinkIcon className="w-4 h-4 flex-shrink-0" /> <span className="whitespace-nowrap">Acessar Gestão Completa</span>
         </button>
       </div>
     </div>

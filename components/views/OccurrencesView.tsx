@@ -59,7 +59,8 @@ const OccurrencesView: React.FC<OccurrencesViewProps> = ({
               {occ.status === 'Aberto' && (
                 <button 
                   onClick={() => handleResolveOccurrence(occ.id)}
-                  className="px-4 py-1.5 bg-zinc-100 text-black rounded-xl text-[9px] font-black uppercase hover:bg-zinc-200 transition-all flex items-center gap-2 shadow-sm border border-black/5"
+                  className="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase hover:opacity-80 transition-all flex items-center gap-2 shadow-sm border"
+                  style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
                 >
                   <Check className="w-3 h-3" /> Resolver
                 </button>

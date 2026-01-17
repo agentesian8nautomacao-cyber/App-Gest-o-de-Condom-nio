@@ -18,7 +18,6 @@ import {
   Sun,
   Moon,
   X,
-  Monitor,
   ChevronLeft,
   ChevronRight,
   RefreshCw
@@ -30,7 +29,6 @@ interface LayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   role: UserRole;
-  setRole: (role: UserRole) => void;
   onLogout: () => void;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
@@ -39,16 +37,14 @@ interface LayoutProps {
   onOpenNotifications?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  activeTab, 
-  setActiveTab, 
-  role, 
-  setRole, 
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
+  role,
   onLogout,
   theme,
   toggleTheme,
-  onActivateScreenSaver,
   notificationCount = 0,
   onOpenNotifications
 }) => {
@@ -98,11 +94,6 @@ const Layout: React.FC<LayoutProps> = ({
     touchStartYRef.current = null;
   };
 
-  const handleSwitchRole = () => {
-    const nextRole = role === 'PORTEIRO' ? 'SINDICO' : 'PORTEIRO';
-    setRole(nextRole);
-    setActiveTab('dashboard');
-  };
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, roles: ['PORTEIRO', 'SINDICO'] },
@@ -114,8 +105,9 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'staff', label: 'Funcionários', icon: ClipboardList, roles: ['SINDICO'] },
     { id: 'visitors', label: 'Visitantes', icon: UserCircle, roles: ['PORTEIRO'] },
     { id: 'notes', label: 'Bloco de Notas', icon: MessageSquare, roles: ['PORTEIRO'] },
-    { id: 'crm', label: 'CRM Síndico', icon: Settings, roles: ['SINDICO'] },
-    { id: 'ai', label: 'Inteligência IA', icon: BrainCircuit, roles: ['PORTEIRO', 'SINDICO'] },
+    { id: 'reports', label: 'Relatório de IA', icon: BrainCircuit, roles: ['SINDICO'] },
+    { id: 'ai', label: 'Inteligência IA', icon: BrainCircuit, roles: ['PORTEIRO'] },
+    { id: 'settings', label: 'Configurações', icon: Settings, roles: ['PORTEIRO', 'SINDICO'] },
   ];
 
   const filteredMenu = menuItems.filter(item => item.roles.includes(role));
@@ -187,18 +179,7 @@ const Layout: React.FC<LayoutProps> = ({
           {!isDesktopCollapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-xs font-black truncate uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{role === 'SINDICO' ? 'Admin' : 'Portaria'}</p>
-              <button 
-                onClick={handleSwitchRole}
-                className="text-[9px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 flex items-center gap-1 mt-0.5 transition-all active:scale-95"
-              >
-                <RefreshCw className="w-2.5 h-2.5" /> Alternar
-              </button>
             </div>
-          )}
-          {isDesktopCollapsed && (
-            <button onClick={handleSwitchRole} className="p-1 opacity-40 hover:opacity-100" title="Alternar Perfil">
-              <RefreshCw className="w-4 h-4" />
-            </button>
           )}
           <button 
             onClick={onLogout}
@@ -270,13 +251,6 @@ const Layout: React.FC<LayoutProps> = ({
                         {notificationCount}
                       </span>
                     )}
-                 </button>
-                 <button 
-                    onClick={onActivateScreenSaver}
-                    className="p-3 rounded-2xl border transition-all hover:scale-110 active:scale-95 flex items-center justify-center group"
-                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                 >
-                    <Monitor className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-opacity" />
                  </button>
                </div>
              )}

@@ -1,18 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ArrowRight, User, Lock, Eye, EyeOff } from 'lucide-react';
-import { UserRole } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-interface LoginProps {
-  onLogin: (role: UserRole) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('PORTEIRO');
+const Login: React.FC = () => {
+  const { signIn, loading: authLoading } = useAuth();
   const [username, setUsername] = useState('portaria');
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [showIntro, setShowIntro] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
@@ -28,16 +25,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   // Adiciona listener global para tecla Enter (atalho para computadores)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && showForm && !loading) {
+      if (e.key === 'Enter' && showForm && !loading && !authLoading) {
         handleLogin();
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [showForm, loading, selectedRole, username, password]);
+  }, [showForm, loading, authLoading, username, password]);
 
-  const handleRoleChange = (role: UserRole) => {
-    setSelectedRole(role);
+  const handleRoleChange = (role: 'PORTEIRO' | 'SINDICO') => {
     if (role === 'PORTEIRO') {
       setUsername('portaria');
       setPassword('123456');
@@ -47,14 +43,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
-  const handleLogin = (e?: React.FormEvent | React.KeyboardEvent) => {
+  const handleLogin = async (e?: React.FormEvent | React.KeyboardEvent) => {
     if (e) e.preventDefault();
-    if (loading) return;
-    
+    if (loading || authLoading) return;
+
     setLoading(true);
-    setTimeout(() => {
-      onLogin(selectedRole);
-    }, 1500);
+    setError('');
+
+    try {
+      const { error } = await signIn(username, password);
+
+      if (error) {
+        setError(error.message);
+      }
+      // If successful, the auth context will handle the state update
+    } catch (err) {
+      setError('Erro inesperado. Tente novamente.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,31 +87,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-black">Acesso Restrito</p>
             </header>
 
-            <div className="bg-white/5 p-1 rounded-2xl mb-8 flex relative border border-white/5">
-              <div 
-                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl transition-all duration-500 shadow-xl ${
-                  selectedRole === 'SINDICO' ? 'translate-x-[calc(100%+0px)]' : 'translate-x-0'
-                }`}
-              />
-              <button 
-                type="button"
-                onClick={() => handleRoleChange('PORTEIRO')}
-                className={`relative z-10 flex-1 py-3 text-[10px] font-black uppercase transition-colors ${
-                  selectedRole === 'PORTEIRO' ? 'text-black' : 'text-zinc-500'
-                }`}
-              >
-                Portaria
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleRoleChange('SINDICO')}
-                className={`relative z-10 flex-1 py-3 text-[10px] font-black uppercase transition-colors ${
-                  selectedRole === 'SINDICO' ? 'text-black' : 'text-zinc-500'
-                }`}
-              >
-                Síndico
-              </button>
-            </div>
+            {error && (
+              <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <p className="text-red-400 text-xs text-center font-medium">{error}</p>
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
@@ -138,12 +126,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
-                disabled={loading}
-                className="group w-full py-5 bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 hover:bg-zinc-200 active:scale-95 transition-all shadow-[0_20px_40px_-10px_rgba(255,255,255,0.2)]"
+                disabled={loading || authLoading}
+                className="group w-full py-5 font-black text-[11px] uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+                style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
               >
-                {loading ? (
+                {(loading || authLoading) ? (
                   <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                 ) : (
                   <>

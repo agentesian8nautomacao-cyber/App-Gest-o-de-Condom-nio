@@ -61,10 +61,10 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-set /p branch="Digite o nome da branch (pressione Enter para 'master'): "
+set /p branch="Digite o nome da branch (pressione Enter para 'main'): "
 
 if "%branch%"=="" (
-    set branch=master
+    set branch=main
 )
 
 echo.

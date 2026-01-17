@@ -54,7 +54,8 @@ const VisitorsView: React.FC<VisitorsViewProps> = ({
           </div>
           <button 
             onClick={() => setIsVisitorModalOpen(true)}
-            className="px-6 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-2"
+            className="px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform whitespace-nowrap flex items-center gap-2"
+            style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}
           >
             <Plus className="w-4 h-4" /> Novo Acesso
           </button>
@@ -69,9 +70,13 @@ const VisitorsView: React.FC<VisitorsViewProps> = ({
              onClick={() => setVisitorTab(tab as any)}
              className={`px-6 py-3 rounded-[16px] text-[10px] font-black uppercase tracking-widest transition-all ${
                visitorTab === tab 
-               ? 'bg-white text-black shadow-lg scale-105' 
-               : 'bg-white/5 text-white/40 hover:bg-white/10'
+               ? 'shadow-lg scale-105' 
+               : 'opacity-60 hover:opacity-80'
              }`}
+             style={visitorTab === tab 
+               ? { backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }
+               : { backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }
+             }
            >
              {tab === 'active' && 'No Condomínio'}
              {tab === 'history' && 'Histórico'}
@@ -93,9 +98,9 @@ const VisitorsView: React.FC<VisitorsViewProps> = ({
               <div className="flex justify-between items-start mb-6">
                  <h4 className="text-xl font-black uppercase tracking-tight">{visitor.visitorNames}</h4>
                  <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                   visitor.type === 'Prestador' ? 'bg-amber-100 text-amber-600' : 
-                   visitor.type === 'Delivery' ? 'bg-blue-100 text-blue-600' : 
-                   'bg-purple-100 text-purple-600'
+                   visitor.type === 'Prestador' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 
+                   visitor.type === 'Delivery' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 
+                   'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                  }`}>
                    {visitor.type || 'Visita'}
                  </span>
@@ -126,7 +131,8 @@ const VisitorsView: React.FC<VisitorsViewProps> = ({
               {visitor.status === 'active' && (
                 <button 
                   onClick={() => handleVisitorCheckOut(visitor.id)}
-                  className="w-full py-4 bg-zinc-100 dark:bg-white/10 text-black dark:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:opacity-80 transition-all flex items-center justify-center gap-2 border"
+                  style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', borderColor: 'var(--border-color)' }}
                 >
                   <LogOut className="w-4 h-4" /> Registrar Saída
                 </button>

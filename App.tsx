@@ -3,7 +3,13 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Layout from './components/Layout';
 import Login from './components/Login';
 import ScreenSaver from './components/ScreenSaver';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UserRole, Package, Resident, Note, VisitorLog, PackageItem, Occurrence, Notice, ChatMessage } from './types';
+import DashboardView from './components/views/DashboardView';
+import SindicoDashboardView from './components/views/SindicoDashboardView';
+import AiReportsView from './components/views/AiReportsView';
+import AiView from './components/views/AiView';
+import SettingsView from './components/views/SettingsView';
 import { 
   Package as PackageIcon, 
   Users, 
@@ -353,12 +359,13 @@ const DraggableFab = ({ onClick }: { onClick: () => void }) => {
   );
 };
 
-const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [role, setRole] = useState<UserRole>('PORTEIRO');
+const AppContent: React.FC = () => {
+  const { user, role, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isScreenSaverActive, setIsScreenSaverActive] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
   
   const [quickViewCategory, setQuickViewCategory] = useState<QuickViewCategory>(null);
 
@@ -568,6 +575,27 @@ const App: React.FC = () => {
       hasNewNotice: allNotices.some(n => isWithin(n.date, 1440)) // Últimas 24h
     };
   }, [allPackages, visitorLogs, allOccurrences, allNotes, allNotices]);
+
+  // Calcular contagem de notificações (excluindo as descartadas)
+  const notificationCount = useMemo(() => {
+    let count = 0;
+    const pendingPackages = allPackages.filter(p => p.status === 'Pendente' && !dismissedNotifications.has(`package-${p.id}`));
+    const activeVisitors = visitorLogs.filter(v => v.status === 'active' && !dismissedNotifications.has(`visitor-${v.id}`));
+    const openOccurrences = allOccurrences.filter(o => o.status === 'Aberto' && !dismissedNotifications.has(`occurrence-${o.id}`));
+    const activeNotes = allNotes.filter(n => !n.completed && !dismissedNotifications.has(`note-${n.id}`));
+    
+    count += pendingPackages.length;
+    count += activeVisitors.length;
+    count += openOccurrences.length;
+    count += activeNotes.length;
+    
+    return count;
+  }, [eventStates, allPackages, visitorLogs, allOccurrences, allNotes, dismissedNotifications]);
+
+  const handleDismissNotification = (type: string, id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissedNotifications(prev => new Set([...prev, `${type}-${id}`]));
+  };
 
   // Lógica para dados do QuickView
   const quickViewData = useMemo(() => {
@@ -882,15 +910,42 @@ const App: React.FC = () => {
 
   const [isOccurrenceModalOpen, setIsOccurrenceModalOpen] = useState(false);
   const [occurrenceDescription, setOccurrenceDescription] = useState('');
+  const [occurrenceResidentName, setOccurrenceResidentName] = useState('');
+  const [occurrenceUnit, setOccurrenceUnit] = useState('');
+
+  const handleSaveOccurrence = () => {
+    if (!occurrenceDescription.trim()) {
+      alert('Por favor, descreva a ocorrência.');
+      return;
+    }
+
+    const newOccurrence: Occurrence = {
+      id: Date.now().toString(),
+      residentName: occurrenceResidentName.trim() || 'Não informado',
+      unit: occurrenceUnit.trim() || 'Não informado',
+      description: occurrenceDescription.trim(),
+      status: 'Aberto',
+      date: new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      reportedBy: role === 'SINDICO' ? 'Síndico' : 'Portaria'
+    };
+
+    setAllOccurrences([newOccurrence, ...allOccurrences]);
+    setOccurrenceDescription('');
+    setOccurrenceResidentName('');
+    setOccurrenceUnit('');
+    setIsOccurrenceModalOpen(false);
+  };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  const handleLogin = (selectedRole: UserRole) => {
-    setRole(selectedRole);
-    setIsAuthenticated(true);
-  };
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setActiveTab('dashboard');
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setActiveTab('dashboard');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleSaveNote = () => {
@@ -1054,7 +1109,20 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return renderDashboardPorteiro();
+      case 'dashboard': 
+        if (role === 'SINDICO') {
+          return (
+            <SindicoDashboardView
+              allPackages={allPackages}
+              visitorLogs={visitorLogs}
+              allOccurrences={allOccurrences}
+              allResidents={allResidents}
+              setActiveTab={setActiveTab}
+              setActiveNoticeTab={setActiveNoticeTab}
+            />
+          );
+        }
+        return renderDashboardPorteiro();
       case 'notices': 
         const filteredNotices = allNotices.filter(n => {
            if (noticeFilter === 'urgent') return n.category === 'Urgente';
@@ -1807,24 +1875,221 @@ const App: React.FC = () => {
           </div>
         </div>
       );
+      case 'reports':
+        return (
+          <AiReportsView
+            allPackages={allPackages}
+            visitorLogs={visitorLogs}
+            allOccurrences={allOccurrences}
+            allNotes={allNotes}
+            dayReservations={dayReservations}
+          />
+        );
+      case 'ai':
+        return (
+          <AiView
+            allPackages={allPackages}
+            visitorLogs={visitorLogs}
+            allOccurrences={allOccurrences}
+            allNotes={allNotes}
+            allResidents={allResidents}
+            dayReservations={dayReservations}
+            allNotices={allNotices}
+            chatMessages={chatMessages}
+          />
+        );
+      case 'settings':
+        return <SettingsView />;
+      case 'staff':
+        return (
+          <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <header className="flex justify-between items-center">
+              <h3 className="text-3xl font-black uppercase tracking-tighter">Funcionários</h3>
+            </header>
+            <div className="text-center py-20 opacity-40">
+              <p className="text-sm font-black uppercase">Funcionalidade em desenvolvimento</p>
+            </div>
+          </div>
+        );
       default: return <div className="p-10 text-center opacity-40 font-black uppercase">{activeTab}</div>;
     }
   };
 
   if (isScreenSaverActive) return <ScreenSaver onExit={() => setIsScreenSaverActive(false)} theme={theme} />;
-  if (!isAuthenticated) return <Login onLogin={handleLogin} />;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+    </div>
+  );
+  if (!user || !role) return <Login />;
 
   return (
     <>
-      <Layout 
-        activeTab={activeTab} setActiveTab={setActiveTab} role={role} setRole={setRole} 
-        onLogout={handleLogout} theme={theme} toggleTheme={toggleTheme} 
-        onActivateScreenSaver={() => setIsScreenSaverActive(true)}
+      <Layout
+        activeTab={activeTab} setActiveTab={setActiveTab} role={role}
+        onLogout={handleLogout} theme={theme} toggleTheme={toggleTheme}
+        notificationCount={notificationCount}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
       >
         {renderContent()}
       </Layout>
 
       {role === 'PORTEIRO' && <DraggableFab onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} />}
+
+      {/* MODAL DE NOTIFICAÇÕES */}
+      {isNotificationsOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 md:p-6">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setIsNotificationsOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white text-black rounded-[32px] md:rounded-[40px] shadow-2xl p-6 md:p-8 lg:p-10 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <header className="flex justify-between items-start gap-4 mb-6 md:mb-8">
+              <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                <div className="p-3 md:p-4 rounded-2xl md:rounded-3xl bg-zinc-50 flex-shrink-0">
+                  <Bell className="w-5 h-5 md:w-6 md:h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight">Notificações</h4>
+                  <p className="text-xs md:text-[10px] font-bold opacity-40 uppercase tracking-widest">Central de Alertas</p>
+                </div>
+              </div>
+              <button onClick={() => setIsNotificationsOpen(false)} className="flex-shrink-0 p-2.5 md:p-3 bg-zinc-100 rounded-xl md:rounded-2xl hover:bg-zinc-200 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center">
+                <X className="w-5 h-5" />
+              </button>
+            </header>
+
+            <div className="space-y-3 md:space-y-4">
+              {/* Encomendas Pendentes */}
+              {allPackages.filter(p => p.status === 'Pendente' && !dismissedNotifications.has(`package-${p.id}`)).map((pkg) => (
+                <div 
+                  key={pkg.id}
+                  onClick={() => { setActiveTab('packages'); setIsNotificationsOpen(false); }}
+                  className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-95 min-h-[60px] group relative border"
+                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+                >
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                    <div className="p-2.5 md:p-3 bg-blue-500 rounded-xl flex-shrink-0">
+                      <PackageIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h6 className="font-black text-sm md:text-base uppercase break-words" style={{ color: 'var(--text-primary)' }}>Encomenda Pendente</h6>
+                      <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>{pkg.recipient} - {pkg.unit}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => handleDismissNotification('package', pkg.id, e)}
+                      className="p-1.5 md:p-2 rounded-lg transition-all active:scale-95 opacity-0 group-hover:opacity-100 flex items-center justify-center min-w-[32px] min-h-[32px]"
+                      style={{ backgroundColor: 'var(--glass-bg)' }}
+                      title="Descartar notificação"
+                    >
+                      <X className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--text-primary)' }} />
+                    </button>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 opacity-30 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+
+              {/* Visitantes Ativos */}
+              {visitorLogs.filter(v => v.status === 'active' && !dismissedNotifications.has(`visitor-${v.id}`)).map((visitor) => (
+                <div 
+                  key={visitor.id}
+                  onClick={() => { setActiveTab('visitors'); setIsNotificationsOpen(false); }}
+                  className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-95 min-h-[60px] group relative border"
+                  style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.3)' }}
+                >
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                    <div className="p-2.5 md:p-3 bg-purple-500 rounded-xl flex-shrink-0">
+                      <Users className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h6 className="font-black text-sm md:text-base uppercase break-words" style={{ color: 'var(--text-primary)' }}>Visitante no Prédio</h6>
+                      <p className="text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>{visitor.visitorNames || visitor.residentName} - {visitor.unit}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => handleDismissNotification('visitor', visitor.id, e)}
+                      className="p-1.5 md:p-2 rounded-lg hover:bg-purple-200 transition-all active:scale-95 opacity-0 group-hover:opacity-100 flex items-center justify-center min-w-[32px] min-h-[32px]"
+                      title="Descartar notificação"
+                    >
+                      <X className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-600" />
+                    </button>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 opacity-30 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+
+              {/* Ocorrências Abertas */}
+              {allOccurrences.filter(o => o.status === 'Aberto' && !dismissedNotifications.has(`occurrence-${o.id}`)).map((occurrence) => (
+                <div 
+                  key={occurrence.id}
+                  onClick={() => { setActiveTab('occurrences'); setIsNotificationsOpen(false); }}
+                  className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-95 min-h-[60px] group relative border"
+                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                >
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                    <div className="p-2.5 md:p-3 bg-red-500 rounded-xl flex-shrink-0">
+                      <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h6 className="font-black text-sm md:text-base uppercase break-words">Ocorrência Aberta</h6>
+                      <p className="text-xs md:text-sm opacity-60">{occurrence.residentName} - {occurrence.unit}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => handleDismissNotification('occurrence', occurrence.id, e)}
+                      className="p-1.5 md:p-2 rounded-lg transition-all active:scale-95 opacity-0 group-hover:opacity-100 flex items-center justify-center min-w-[32px] min-h-[32px]"
+                      style={{ backgroundColor: 'var(--glass-bg)' }}
+                      title="Descartar notificação"
+                    >
+                      <X className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--text-primary)' }} />
+                    </button>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 opacity-30 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+
+              {/* Notas Pendentes */}
+              {allNotes.filter(n => !n.completed && !dismissedNotifications.has(`note-${n.id}`)).map((note) => (
+                <div 
+                  key={note.id}
+                  onClick={() => { setActiveTab('notes'); setIsNotificationsOpen(false); }}
+                  className="p-4 md:p-5 rounded-[20px] md:rounded-[24px] flex items-center justify-between gap-3 cursor-pointer transition-all active:scale-95 min-h-[60px] group relative border"
+                  style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+                >
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                    <div className="p-2.5 md:p-3 bg-amber-500 rounded-xl flex-shrink-0">
+                      <PenTool className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h6 className="font-black text-sm md:text-base uppercase break-words" style={{ color: 'var(--text-primary)' }}>Lembrete Pendente</h6>
+                      <p className="text-xs md:text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{note.content.substring(0, 40)}{note.content.length > 40 ? '...' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => handleDismissNotification('note', note.id, e)}
+                      className="p-1.5 md:p-2 rounded-lg transition-all active:scale-95 opacity-0 group-hover:opacity-100 flex items-center justify-center min-w-[32px] min-h-[32px]"
+                      style={{ backgroundColor: 'var(--glass-bg)' }}
+                      title="Descartar notificação"
+                    >
+                      <X className="w-3.5 h-3.5 md:w-4 md:h-4" style={{ color: 'var(--text-primary)' }} />
+                    </button>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 opacity-30 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+
+              {/* Mensagem quando não há notificações */}
+              {notificationCount === 0 && (
+                <div className="py-12 text-center italic font-black uppercase text-xs border-2 border-dashed rounded-[24px]" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)', opacity: 0.4 }}>
+                  Nenhuma notificação pendente
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* POP-UP QUICKVIEW */}
       <QuickViewModal 
@@ -3091,21 +3356,54 @@ const App: React.FC = () => {
 
       {/* MODAL OCORRENCIA */}
       {isOccurrenceModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsOccurrenceModalOpen(false)} />
-          <div className="relative w-full max-w-lg bg-white text-black rounded-[40px] shadow-2xl p-8 md:p-10 animate-in zoom-in duration-300">
-             <header className="flex justify-between items-center mb-8">
-                <h4 className="text-2xl font-black uppercase">Reportar Ocorrência</h4>
-                <button onClick={() => setIsOccurrenceModalOpen(false)} className="p-3 bg-zinc-100 rounded-2xl"><X className="w-5 h-5"/></button>
+          <div className="relative w-full max-w-lg bg-white text-black rounded-[32px] md:rounded-[40px] shadow-2xl p-6 md:p-8 lg:p-10 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+             <header className="flex justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
+                <h4 className="text-xl md:text-2xl font-black uppercase leading-tight">Reportar Ocorrência</h4>
+                <button onClick={() => setIsOccurrenceModalOpen(false)} className="flex-shrink-0 p-2.5 md:p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-5 h-5"/></button>
              </header>
-             <div className="space-y-4">
-                <textarea 
-                  placeholder="Descreva o ocorrido..." 
-                  value={occurrenceDescription}
-                  onChange={e => setOccurrenceDescription(e.target.value)}
-                  className="w-full h-32 p-4 bg-zinc-50 rounded-2xl outline-none font-medium text-sm resize-none border border-transparent focus:border-red-100" 
-                />
-                <button onClick={() => setIsOccurrenceModalOpen(false)} className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-xl mt-4">Registrar</button>
+             <div className="space-y-4 md:space-y-5">
+                <div>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">Morador (opcional)</label>
+                  <input 
+                    type="text"
+                    placeholder="Nome do morador..."
+                    value={occurrenceResidentName}
+                    onChange={e => setOccurrenceResidentName(e.target.value)}
+                    className="w-full p-3 md:p-4 bg-zinc-50 rounded-2xl outline-none font-medium text-sm md:text-base border border-transparent focus:border-red-100 min-h-[44px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">Unidade (opcional)</label>
+                  <input 
+                    type="text"
+                    placeholder="Ex: 201A, 102..."
+                    value={occurrenceUnit}
+                    onChange={e => setOccurrenceUnit(e.target.value)}
+                    className="w-full p-3 md:p-4 bg-zinc-50 rounded-2xl outline-none font-medium text-sm md:text-base border border-transparent focus:border-red-100 min-h-[44px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">Descrição da Ocorrência *</label>
+                  <textarea 
+                    placeholder="Descreva o ocorrido..." 
+                    value={occurrenceDescription}
+                    onChange={e => setOccurrenceDescription(e.target.value)}
+                    className="w-full h-32 md:h-36 p-4 bg-zinc-50 rounded-2xl outline-none font-medium text-sm md:text-base resize-none border border-transparent focus:border-red-100" 
+                  />
+                </div>
+                <button 
+                  onClick={handleSaveOccurrence}
+                  disabled={!occurrenceDescription.trim()}
+                  className={`w-full py-4 md:py-5 rounded-2xl font-black uppercase text-xs md:text-[10px] shadow-xl mt-4 transition-all min-h-[48px] flex items-center justify-center ${
+                    occurrenceDescription.trim() 
+                      ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95' 
+                      : 'bg-zinc-300 text-zinc-500 cursor-not-allowed'
+                  }`}
+                >
+                  Registrar
+                </button>
              </div>
           </div>
         </div>
@@ -3180,6 +3478,14 @@ const App: React.FC = () => {
         </div>
       )}
     </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

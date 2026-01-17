@@ -10,39 +10,39 @@ export const NewReservationModal = ({
 }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 md:p-6">
       <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-2xl" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-zinc-900/50 text-white rounded-[40px] shadow-2xl p-10 border border-white/5 animate-in zoom-in duration-300">
-         <header className="flex justify-between items-center mb-10">
-            <div>
-               <h4 className="text-3xl font-black uppercase tracking-tight text-white">Nova Reserva</h4>
-               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">Agendamento de Espaço</p>
+      <div className="relative w-full max-w-lg bg-zinc-900/50 text-white rounded-[32px] md:rounded-[40px] shadow-2xl p-6 md:p-8 lg:p-10 border border-white/5 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+         <header className="flex justify-between items-start gap-4 mb-6 md:mb-8 lg:mb-10">
+            <div className="min-w-0 flex-1">
+               <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white leading-tight">Nova Reserva</h4>
+               <p className="text-xs md:text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-1">Agendamento de Espaço</p>
             </div>
-            <button onClick={onClose} className="p-4 bg-white/5 rounded-3xl hover:bg-white/10 transition-colors border border-white/5"><X className="w-5 h-5"/></button>
+            <button onClick={onClose} className="flex-shrink-0 p-3 md:p-4 bg-white/5 rounded-2xl md:rounded-3xl hover:bg-white/10 transition-colors border border-white/5 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-5 h-5"/></button>
          </header>
          
-         <div className="space-y-6">
+         <div className="space-y-5 md:space-y-6">
             <div className="space-y-2">
-               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Área Comum</label>
+               <label className="text-xs md:text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Área Comum</label>
                <div className="relative">
                   <select 
                     value={data.area}
                     onChange={(e) => setData({...data, area: e.target.value})}
-                    className="w-full p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm border-none focus:ring-1 focus:ring-white/30 appearance-none text-white transition-all shadow-inner"
+                    className="w-full p-4 md:p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm md:text-base border-none focus:ring-1 focus:ring-white/30 appearance-none text-white transition-all shadow-inner min-h-[44px]"
                   >
                      {areasStatus.map((area: any) => (
                         <option key={area.id} value={area.name} className="bg-zinc-900 text-white">{area.name}</option>
                      ))}
                   </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+                  <ChevronDown className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="space-y-2 relative">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Morador</label>
+                  <label className="text-xs md:text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Morador</label>
                   <div className="relative group">
-                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+                     <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
                      <input 
                        type="text" 
                        placeholder="Buscar..."
@@ -53,12 +53,12 @@ export const NewReservationModal = ({
                           setShowSuggestions(true);
                        }}
                        onFocus={() => setShowSuggestions(true)}
-                       className="w-full pl-12 pr-4 p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm border-none focus:ring-1 focus:ring-white/30 text-white placeholder:text-zinc-600 transition-all shadow-inner"
+                       className="w-full pl-10 md:pl-12 pr-4 p-4 md:p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm md:text-base border-none focus:ring-1 focus:ring-white/30 text-white placeholder:text-zinc-600 transition-all shadow-inner min-h-[44px]"
                        autoComplete="off"
                      />
                   </div>
                   {showSuggestions && searchQuery && filteredResidents.length > 0 && (
-                     <div className="absolute top-full left-0 w-full mt-2 bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2">
+                     <div className="absolute top-full left-0 w-full mt-2 bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 max-h-[200px] overflow-y-auto">
                         {filteredResidents.map((r: Resident) => (
                            <div 
                              key={r.id}
@@ -67,24 +67,24 @@ export const NewReservationModal = ({
                                 setSearchQuery(r.name);
                                 setShowSuggestions(false);
                              }}
-                             className="p-4 hover:bg-white/10 cursor-pointer flex justify-between items-center group transition-colors border-b border-white/5 last:border-0"
+                             className="p-3 md:p-4 hover:bg-white/10 cursor-pointer flex justify-between items-center group transition-colors border-b border-white/5 last:border-0 min-h-[44px]"
                            >
-                              <span className="text-xs font-bold uppercase text-white group-hover:text-blue-400">{r.name}</span>
-                              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-white">UN {r.unit}</span>
+                              <span className="text-xs md:text-sm font-bold uppercase text-white group-hover:text-blue-400 break-words">{r.name}</span>
+                              <span className="text-[10px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-white flex-shrink-0 ml-2">UN {r.unit}</span>
                            </div>
                         ))}
                      </div>
                   )}
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Unidade</label>
+                  <label className="text-xs md:text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Unidade</label>
                   <div className="relative">
                      <div className="absolute inset-y-0 left-0 w-1 bg-white/10 rounded-l-2xl"></div>
                      <input 
                        type="text" 
                        readOnly
                        value={data.unit}
-                       className="w-full p-5 bg-black/20 rounded-2xl outline-none font-black text-sm border border-transparent text-white/50 cursor-not-allowed text-center tracking-widest"
+                       className="w-full p-4 md:p-5 bg-black/20 rounded-2xl outline-none font-black text-sm md:text-base border border-transparent text-white/50 cursor-not-allowed text-center tracking-widest min-h-[44px]"
                        placeholder="---"
                      />
                   </div>
@@ -92,49 +92,49 @@ export const NewReservationModal = ({
             </div>
 
             <div className="space-y-2">
-               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Data</label>
+               <label className="text-xs md:text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">Data</label>
                <input 
                  type="date"
                  value={data.date}
                  onChange={(e) => setData({...data, date: e.target.value})}
-                 className="w-full p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm border-none focus:ring-1 focus:ring-white/30 text-white uppercase tracking-widest shadow-inner cursor-pointer"
+                 className="w-full p-4 md:p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm md:text-base border-none focus:ring-1 focus:ring-white/30 text-white uppercase tracking-widest shadow-inner cursor-pointer min-h-[44px]"
                />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className={`text-[10px] font-bold uppercase tracking-widest ml-2 transition-colors ${hasConflict ? 'text-red-500' : 'text-zinc-500'}`}>Início</label>
+                  <label className={`text-xs md:text-[10px] font-bold uppercase tracking-widest ml-2 transition-colors ${hasConflict ? 'text-red-500' : 'text-zinc-500'}`}>Início</label>
                   <input 
                     type="time"
                     value={data.startTime}
                     onChange={(e) => setData({...data, startTime: e.target.value})}
-                    className={`w-full p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm border border-transparent focus:ring-1 focus:ring-white/30 text-white shadow-inner transition-all ${hasConflict ? 'border-red-500/50 bg-red-500/10' : ''}`}
+                    className={`w-full p-4 md:p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm md:text-base border border-transparent focus:ring-1 focus:ring-white/30 text-white shadow-inner transition-all min-h-[44px] ${hasConflict ? 'border-red-500/50 bg-red-500/10' : ''}`}
                   />
                </div>
                <div className="space-y-2">
-                  <label className={`text-[10px] font-bold uppercase tracking-widest ml-2 transition-colors ${hasConflict ? 'text-red-500' : 'text-zinc-500'}`}>Fim</label>
+                  <label className={`text-xs md:text-[10px] font-bold uppercase tracking-widest ml-2 transition-colors ${hasConflict ? 'text-red-500' : 'text-zinc-500'}`}>Fim</label>
                   <input 
                     type="time"
                     value={data.endTime}
                     onChange={(e) => setData({...data, endTime: e.target.value})}
-                    className={`w-full p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm border border-transparent focus:ring-1 focus:ring-white/30 text-white shadow-inner transition-all ${hasConflict ? 'border-red-500/50 bg-red-500/10' : ''}`}
+                    className={`w-full p-4 md:p-5 bg-white/5 rounded-2xl outline-none font-bold text-sm md:text-base border border-transparent focus:ring-1 focus:ring-white/30 text-white shadow-inner transition-all min-h-[44px] ${hasConflict ? 'border-red-500/50 bg-red-500/10' : ''}`}
                   />
                </div>
             </div>
 
             {hasConflict && (
                <div className="flex items-center gap-2 text-red-400 bg-red-500/10 p-3 rounded-xl animate-pulse">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase tracking-wide">Horário Indisponível (Conflito)</span>
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs md:text-[10px] font-black uppercase tracking-wide">Horário Indisponível (Conflito)</span>
                </div>
             )}
 
             <button 
               onClick={onConfirm}
               disabled={!data.resident || !data.date || hasConflict}
-              className="w-full py-6 bg-white text-black rounded-[24px] font-black uppercase text-[11px] tracking-[0.2em] hover:bg-zinc-200 hover:scale-[1.02] active:scale-95 transition-all mt-6 shadow-xl disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-5 md:py-6 bg-white text-black rounded-[20px] md:rounded-[24px] font-black uppercase text-xs md:text-[11px] tracking-[0.2em] hover:bg-zinc-200 hover:scale-[1.02] active:scale-95 transition-all mt-6 shadow-xl disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[52px]"
             >
-               {hasConflict ? 'Verifique o Horário' : 'Confirmar Agendamento'}
+               <span className="whitespace-nowrap">{hasConflict ? 'Verifique o Horário' : 'Confirmar Agendamento'}</span>
             </button>
          </div>
       </div>
@@ -150,28 +150,28 @@ export const NewVisitorModal = ({
 }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-white text-black rounded-[48px] shadow-2xl p-8 md:p-12 animate-in zoom-in duration-500">
-         <header className="flex justify-between items-start mb-8">
-            <div>
-               <h4 className="text-3xl font-black uppercase tracking-tighter">Novo Acesso</h4>
-               <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.3em]">Passo 0{step} de 03</p>
+      <div className="relative w-full max-w-xl bg-white text-black rounded-[32px] md:rounded-[48px] shadow-2xl p-6 md:p-8 lg:p-12 animate-in zoom-in duration-500 max-h-[90vh] overflow-y-auto">
+         <header className="flex justify-between items-start gap-4 mb-6 md:mb-8">
+            <div className="min-w-0 flex-1">
+               <h4 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-tight">Novo Acesso</h4>
+               <p className="text-xs md:text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] mt-1">Passo 0{step} de 03</p>
             </div>
-            <button onClick={onClose} className="p-4 bg-zinc-50 rounded-3xl hover:bg-zinc-100 transition-all"><X className="w-6 h-6"/></button>
+            <button onClick={onClose} className="flex-shrink-0 p-3 md:p-4 bg-zinc-50 rounded-2xl md:rounded-3xl hover:bg-zinc-100 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-5 h-5 md:w-6 md:h-6"/></button>
          </header>
 
          {step === 1 && (
-           <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+           <div className="space-y-5 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
               <div className="relative">
-                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Vincular Morador</label>
+                 <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Vincular Morador</label>
                  <div className="relative">
-                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-30" />
+                   <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 opacity-30" />
                    <input 
                      autoFocus type="text" placeholder="Buscar por Nome ou Unidade..." 
                      value={searchResident}
                      onChange={e => { setSearchResident(e.target.value); setData({...data, unit: '', residentName: ''}); }}
-                     className="w-full pl-14 pr-6 py-6 bg-zinc-50 rounded-[32px] font-bold text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20"
+                     className="w-full pl-12 md:pl-14 pr-6 py-4 md:py-5 lg:py-6 bg-zinc-50 rounded-[24px] md:rounded-[32px] font-bold text-base md:text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20 min-h-[44px]"
                    />
                  </div>
               </div>
@@ -181,58 +181,58 @@ export const NewVisitorModal = ({
                        <button 
                          key={r.id} 
                          onClick={() => { setData({ ...data, unit: r.unit, residentName: r.name }); setSearchResident(r.name); }}
-                         className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all ${data.unit === r.unit ? 'bg-black text-white shadow-xl' : 'bg-zinc-50 hover:bg-zinc-100'}`}
+                         className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all min-h-[60px] ${data.unit === r.unit ? 'bg-black text-white shadow-xl' : 'bg-zinc-50 hover:bg-zinc-100'}`}
                        >
-                          <div className="text-left">
-                             <h6 className="font-black text-sm uppercase">{r.name}</h6>
-                             <p className={`text-[10px] font-bold uppercase tracking-widest ${data.unit === r.unit ? 'opacity-60' : 'opacity-40'}`}>Unidade {r.unit}</p>
+                          <div className="text-left min-w-0 flex-1">
+                             <h6 className="font-black text-sm md:text-base uppercase break-words">{r.name}</h6>
+                             <p className={`text-xs md:text-[10px] font-bold uppercase tracking-widest ${data.unit === r.unit ? 'opacity-60' : 'opacity-40'}`}>Unidade {r.unit}</p>
                           </div>
-                          {data.unit === r.unit && <CheckCircle2 className="w-5 h-5" />}
+                          {data.unit === r.unit && <CheckCircle2 className="w-5 h-5 flex-shrink-0 ml-2" />}
                        </button>
                     ))
                  ) : (
-                    searchResident && <p className="text-center text-xs opacity-40 py-4 font-black uppercase">Nenhum morador encontrado</p>
+                    searchResident && <p className="text-center text-xs md:text-sm opacity-40 py-4 font-black uppercase">Nenhum morador encontrado</p>
                  )}
               </div>
               <button 
                 onClick={() => setStep(2)} disabled={!data.unit}
-                className="w-full py-6 bg-black text-white rounded-[32px] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-5 md:py-6 bg-black text-white rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all mt-4 disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px] flex items-center justify-center gap-2"
               >
-                Próximo <ArrowRight className="w-4 h-4 inline ml-2" />
+                Próximo <ArrowRight className="w-4 h-4" />
               </button>
            </div>
          )}
 
          {step === 2 && (
-           <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-4 bg-zinc-50 rounded-2xl flex items-center justify-between mb-4 border border-black/5">
-                 <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Vinculado a</p>
-                    <h6 className="text-sm font-black uppercase">{data.residentName} <span className="opacity-40 ml-1">({data.unit})</span></h6>
+           <div className="space-y-5 md:space-y-6 animate-in slide-in-from-right-4 duration-300">
+              <div className="p-4 bg-zinc-50 rounded-2xl flex items-center justify-between mb-4 border border-black/5 gap-3">
+                 <div className="min-w-0 flex-1">
+                    <p className="text-[10px] md:text-[9px] font-black uppercase tracking-widest opacity-40">Vinculado a</p>
+                    <h6 className="text-sm md:text-base font-black uppercase break-words">{data.residentName} <span className="opacity-40 ml-1">({data.unit})</span></h6>
                  </div>
-                 <CheckCircle2 className="w-5 h-5 text-green-500" />
+                 <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
               </div>
               <div>
-                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Nome do Visitante</label>
+                 <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Nome do Visitante</label>
                  <input 
                    autoFocus type="text" placeholder="Nome Completo" 
                    value={data.name}
                    onChange={e => setData({ ...data, name: e.target.value })}
-                   className="w-full p-5 bg-zinc-50 rounded-[24px] font-bold text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20"
+                   className="w-full p-4 md:p-5 bg-zinc-50 rounded-[20px] md:rounded-[24px] font-bold text-base md:text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20 min-h-[44px]"
                  />
               </div>
               <div>
-                 <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Documento (Opcional)</label>
+                 <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2 mb-2 block">Documento (Opcional)</label>
                  <input 
                    type="text" placeholder="RG ou CPF" 
                    value={data.doc}
                    onChange={e => setData({ ...data, doc: e.target.value })}
-                   className="w-full p-5 bg-zinc-50 rounded-[24px] font-bold text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20"
+                   className="w-full p-4 md:p-5 bg-zinc-50 rounded-[20px] md:rounded-[24px] font-bold text-base md:text-lg outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20 min-h-[44px]"
                  />
               </div>
-              <div className="flex gap-4 mt-4">
-                 <button onClick={() => setStep(1)} className="p-6 bg-zinc-50 rounded-[32px] hover:bg-zinc-100"><ChevronLeft className="w-6 h-6"/></button>
-                 <button onClick={() => setStep(3)} disabled={!data.name} className="flex-1 py-6 bg-black text-white rounded-[32px] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">Próximo</button>
+              <div className="flex gap-3 md:gap-4 mt-4">
+                 <button onClick={() => setStep(1)} className="p-4 md:p-5 lg:p-6 bg-zinc-50 rounded-[24px] md:rounded-[32px] hover:bg-zinc-100 transition-all active:scale-95 min-w-[52px] min-h-[52px] flex items-center justify-center"><ChevronLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                 <button onClick={() => setStep(3)} disabled={!data.name} className="flex-1 py-4 md:py-5 lg:py-6 bg-black text-white rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 min-h-[52px] flex items-center justify-center">Próximo</button>
               </div>
            </div>
          )}
@@ -308,17 +308,17 @@ export const NewNoteModal = ({
 }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-white text-black rounded-[48px] shadow-2xl p-6 md:p-8 animate-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[90vh]">
-         <header className="flex justify-between items-start mb-6">
-            <div>
-               <h4 className="text-2xl font-black uppercase tracking-tight">{editingId ? 'Editar Nota' : 'Rascunho Rápido'}</h4>
-               <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]">Fluxo de produtividade</p>
+      <div className="relative w-full max-w-xl bg-white text-black rounded-[32px] md:rounded-[48px] shadow-2xl p-5 md:p-6 lg:p-8 animate-in zoom-in duration-300 overflow-hidden flex flex-col max-h-[90vh]">
+         <header className="flex justify-between items-start gap-4 mb-5 md:mb-6">
+            <div className="min-w-0 flex-1">
+               <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight">{editingId ? 'Editar Nota' : 'Rascunho Rápido'}</h4>
+               <p className="text-xs md:text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Fluxo de produtividade</p>
             </div>
-            <div className="flex gap-2">
-               <button onClick={() => setIsManaging(!isManaging)} className={`p-3 rounded-2xl transition-all ${isManaging ? 'bg-black text-white' : 'bg-zinc-100 hover:bg-zinc-200'}`}><Settings2 className="w-5 h-5"/></button>
-               <button onClick={onClose} className="p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all shadow-sm"><X className="w-5 h-5"/></button>
+            <div className="flex gap-2 flex-shrink-0">
+               <button onClick={() => setIsManaging(!isManaging)} className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center ${isManaging ? 'bg-black text-white' : 'bg-zinc-100 hover:bg-zinc-200'}`}><Settings2 className="w-5 h-5"/></button>
+               <button onClick={onClose} className="p-2.5 md:p-3 bg-zinc-100 rounded-xl md:rounded-2xl hover:bg-zinc-200 transition-all shadow-sm active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-5 h-5"/></button>
             </div>
          </header>
 
@@ -327,36 +327,36 @@ export const NewNoteModal = ({
               <div key={cat.name} className="relative flex-shrink-0 group">
                 <button
                   onClick={() => !isManaging && setNewCategory(cat.name)}
-                  className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${newCategory === cat.name ? 'bg-black text-white border-black shadow-lg scale-105' : `${cat.color} text-black border-transparent opacity-60`} ${isManaging ? 'pr-10' : ''}`}
+                  className={`px-4 md:px-6 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-[10px] font-black uppercase tracking-widest transition-all border min-h-[44px] ${newCategory === cat.name ? 'bg-black text-white border-black shadow-lg scale-105' : `${cat.color} text-black border-transparent opacity-60`} ${isManaging ? 'pr-8 md:pr-10' : ''}`}
                 >
                   {cat.name}
                 </button>
                 {isManaging && cat.name !== 'Geral' && (
-                  <button onClick={() => removeCategory(cat.name)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 bg-red-500 text-white rounded-full hover:scale-110 transition-all"><X className="w-3 h-3" /></button>
+                  <button onClick={() => removeCategory(cat.name)} className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 p-1 bg-red-500 text-white rounded-full hover:scale-110 transition-all active:scale-95 min-w-[28px] min-h-[28px] flex items-center justify-center"><X className="w-3 h-3" /></button>
                 )}
               </div>
             ))}
             {isAdding ? (
-               <div className="flex items-center bg-zinc-50 rounded-2xl border border-black/10 overflow-hidden min-w-[150px] animate-in slide-in-from-left-2">
-                  <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nome..." autoFocus className="flex-1 bg-transparent px-3 py-2 text-[10px] font-bold outline-none" />
-                  <button onClick={addCategory} className="p-2 bg-black text-white"><Check className="w-3 h-3"/></button>
-                  <button onClick={() => setIsAdding(false)} className="p-2 bg-zinc-200"><X className="w-3 h-3"/></button>
+               <div className="flex items-center bg-zinc-50 rounded-xl md:rounded-2xl border border-black/10 overflow-hidden min-w-[120px] md:min-w-[150px] animate-in slide-in-from-left-2">
+                  <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nome..." autoFocus className="flex-1 bg-transparent px-2 md:px-3 py-2 text-xs md:text-[10px] font-bold outline-none min-h-[44px]" />
+                  <button onClick={addCategory} className="p-2 bg-black text-white hover:bg-zinc-800 transition-colors active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"><Check className="w-3 h-3"/></button>
+                  <button onClick={() => setIsAdding(false)} className="p-2 bg-zinc-200 hover:bg-zinc-300 transition-colors active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"><X className="w-3 h-3"/></button>
                </div>
             ) : (
-              <button onClick={() => setIsAdding(true)} className="flex-shrink-0 w-10 h-10 rounded-2xl bg-zinc-50 border border-dashed border-zinc-300 flex items-center justify-center hover:bg-zinc-100 transition-all"><Plus className="w-4 h-4 opacity-40" /></button>
+              <button onClick={() => setIsAdding(true)} className="flex-shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-zinc-50 border border-dashed border-zinc-300 flex items-center justify-center hover:bg-zinc-100 transition-all active:scale-95"><Plus className="w-4 h-4 opacity-40" /></button>
             )}
          </div>
 
-         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-6">
-            <textarea placeholder="O que você precisa anotar agora?" value={content} onChange={e => setContent(e.target.value)} autoFocus className="w-full h-40 p-6 bg-zinc-50 rounded-[32px] font-bold text-lg outline-none border-2 border-transparent focus:border-black/5 resize-none shadow-inner leading-relaxed placeholder:opacity-20" />
+         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-5 md:space-y-6">
+            <textarea placeholder="O que você precisa anotar agora?" value={content} onChange={e => setContent(e.target.value)} autoFocus className="w-full h-36 md:h-40 p-4 md:p-6 bg-zinc-50 rounded-[24px] md:rounded-[32px] font-bold text-base md:text-lg outline-none border-2 border-transparent focus:border-black/5 resize-none shadow-inner leading-relaxed placeholder:opacity-20" />
             <div>
-              <button onClick={() => setIsScheduleOpen(!isScheduleOpen)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all ${isScheduleOpen ? 'bg-black text-white border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>
-                <Clock className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">{scheduled ? `Agendado: ${scheduled}` : 'Programar Lembrete'}</span>
+              <button onClick={() => setIsScheduleOpen(!isScheduleOpen)} className={`flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl border transition-all min-h-[44px] w-full ${isScheduleOpen ? 'bg-black text-white border-black' : 'bg-white border-zinc-100 text-zinc-400'}`}>
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs md:text-[10px] font-black uppercase tracking-widest break-words">{scheduled ? `Agendado: ${scheduled}` : 'Programar Lembrete'}</span>
               </button>
               {isScheduleOpen && (
-                <div className="mt-3 p-4 bg-zinc-50 rounded-[24px] border border-black/5 animate-in slide-in-from-top-2">
-                   <input type="datetime-local" value={scheduled} onChange={e => setScheduled(e.target.value)} className="w-full p-4 bg-white rounded-xl font-bold outline-none border border-black/5" />
+                <div className="mt-3 p-3 md:p-4 bg-zinc-50 rounded-[20px] md:rounded-[24px] border border-black/5 animate-in slide-in-from-top-2">
+                   <input type="datetime-local" value={scheduled} onChange={e => setScheduled(e.target.value)} className="w-full p-3 md:p-4 bg-white rounded-xl font-bold outline-none border border-black/5 min-h-[44px]" />
                 </div>
               )}
             </div>
@@ -377,8 +377,8 @@ export const NewNoteModal = ({
               </div>
             )}
          </div>
-         <div className="pt-6">
-            <button onClick={onSave} className="w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"><Save className="w-4 h-4" /> {editingId ? 'Atualizar Registro' : 'Salvar Nota Rápida'}</button>
+         <div className="pt-4 md:pt-6">
+            <button onClick={onSave} className="w-full py-4 md:py-5 bg-black text-white rounded-[20px] md:rounded-[24px] font-black uppercase text-xs md:text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 min-h-[52px]"><Save className="w-4 h-4 flex-shrink-0" /> <span className="whitespace-nowrap">{editingId ? 'Atualizar Registro' : 'Salvar Nota Rápida'}</span></button>
          </div>
       </div>
     </div>
@@ -394,105 +394,111 @@ export const NewPackageModal = ({
 }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-white text-black rounded-[48px] shadow-2xl p-1 md:p-1 overflow-hidden animate-in zoom-in duration-500">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-2 md:p-4">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={onClose} />
+      <div className="relative w-full max-w-2xl bg-white text-black rounded-[24px] md:rounded-[48px] shadow-2xl overflow-hidden animate-in zoom-in duration-500 max-h-[95vh] flex flex-col border-4 border-zinc-200">
          <div className={`transition-all duration-700 ease-in-out flex ${step === 2 ? '-translate-x-1/3' : step === 3 ? '-translate-x-2/3' : 'translate-x-0'}`} style={{ width: '300%' }}>
             
             {/* STEP 1: RESIDENT */}
-            <div className="w-1/3 p-8 md:p-14 max-h-[90vh] overflow-y-auto custom-scrollbar">
-               <header className="flex justify-between items-start mb-12">
-                  <div><h4 className="text-3xl font-black uppercase tracking-tighter">Quem recebe?</h4><p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] mt-1">Passo 01: Identificação</p></div>
-                  <button onClick={onClose} className="p-4 bg-zinc-50 rounded-3xl hover:bg-zinc-100 transition-all"><X className="w-6 h-6"/></button>
+            <div className="w-1/3 p-4 md:p-6 lg:p-8 xl:p-14 flex flex-col max-h-[95vh] overflow-y-auto custom-scrollbar">
+               <header className="flex justify-between items-start gap-4 mb-6 md:mb-8 lg:mb-12 flex-shrink-0 pb-4 border-b-2 border-zinc-300">
+                  <div className="min-w-0 flex-1"><h4 className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tighter leading-tight text-black">Quem recebe?</h4><p className="text-xs md:text-[10px] font-bold text-zinc-600 uppercase tracking-[0.3em] mt-1">Passo 01: Identificação</p></div>
+                  <button onClick={onClose} className="flex-shrink-0 p-3 md:p-4 bg-zinc-200 rounded-2xl md:rounded-3xl hover:bg-zinc-300 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center border-2 border-zinc-400"><X className="w-5 h-5 md:w-6 md:h-6 text-black"/></button>
                </header>
-               <div className="space-y-12">
+               <div className="space-y-6 md:space-y-8 lg:space-y-12 flex-1">
                   <div className="relative group">
-                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 opacity-20 group-focus-within:opacity-100 transition-opacity" />
-                     <input type="text" placeholder="Buscar por nome ou unidade..." value={searchResident} onChange={e => { setSearchResident(e.target.value); setSelectedResident(null); }} className="w-full pl-16 pr-6 py-6 bg-zinc-50 rounded-[32px] font-black text-xl outline-none border-2 border-transparent focus:border-black/5 placeholder:opacity-20 shadow-inner" />
+                     <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-zinc-700 group-focus-within:text-black transition-colors z-10" />
+                     <input 
+                       type="text" 
+                       placeholder="Buscar por nome ou unidade..." 
+                       value={searchResident} 
+                       onChange={e => { setSearchResident(e.target.value); setSelectedResident(null); }} 
+                       className="w-full pl-12 md:pl-16 pr-6 py-4 md:py-5 lg:py-6 bg-white rounded-[24px] md:rounded-[32px] font-black text-base md:text-lg lg:text-xl outline-none border-2 border-zinc-400 focus:border-black focus:ring-4 focus:ring-black/20 placeholder:text-zinc-600 placeholder:font-bold shadow-lg min-h-[44px] transition-all" 
+                     />
                   </div>
                   {!selectedResident && filteredResidents.length > 0 && (
-                     <div className="bg-zinc-50 rounded-[32px] border border-black/5 p-4 space-y-2 animate-in slide-in-from-top-4">
+                     <div className="bg-white rounded-[24px] md:rounded-[32px] border-2 border-zinc-300 p-3 md:p-4 space-y-2 animate-in slide-in-from-top-4 shadow-xl">
                         {filteredResidents.map((r: Resident) => (
-                          <button key={r.id} onClick={() => { setSelectedResident(r); setSearchResident(r.name); }} className="w-full p-6 bg-white rounded-[24px] flex items-center justify-between hover:scale-[1.02] active:scale-95 transition-all shadow-sm border border-transparent hover:border-black/5 group">
-                             <div className="text-left"><h6 className="font-black text-lg uppercase tracking-tight">{r.name}</h6><p className="text-[10px] opacity-40 font-black uppercase tracking-widest">Unidade {r.unit}</p></div>
-                             <div className="p-3 bg-zinc-50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"><Plus className="w-4 h-4" /></div>
+                          <button key={r.id} onClick={() => { setSelectedResident(r); setSearchResident(r.name); }} className="w-full p-4 md:p-5 lg:p-6 bg-white rounded-[20px] md:rounded-[24px] flex items-center justify-between hover:scale-[1.02] active:scale-95 transition-all shadow-md border-2 border-zinc-300 hover:border-black hover:shadow-lg group min-h-[60px] gap-3">
+                             <div className="text-left min-w-0 flex-1"><h6 className="font-black text-base md:text-lg uppercase tracking-tight break-words text-black">{r.name}</h6><p className="text-xs md:text-[10px] text-zinc-600 font-black uppercase tracking-widest">Unidade {r.unit}</p></div>
+                             <div className="p-2 md:p-3 bg-black rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><Plus className="w-4 h-4 text-white" /></div>
                           </button>
                         ))}
                      </div>
                   )}
                   {selectedResident && (
-                     <div className="p-10 bg-black text-white rounded-[48px] flex flex-col items-center text-center animate-in zoom-in duration-500 shadow-2xl relative overflow-hidden">
-                        <div className="w-24 h-24 rounded-[32px] bg-white/10 flex items-center justify-center mb-6 shadow-inner text-3xl font-black">{selectedResident.name.charAt(0)}</div>
-                        <h5 className="text-2xl font-black uppercase leading-tight">{selectedResident.name}</h5>
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 mt-2">Unidade {selectedResident.unit}</p>
+                     <div className="p-6 md:p-8 lg:p-10 bg-black text-white rounded-[32px] md:rounded-[48px] flex flex-col items-center text-center animate-in zoom-in duration-500 shadow-2xl relative overflow-hidden border-4 border-white/10">
+                        <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-[24px] md:rounded-[32px] bg-white/20 flex items-center justify-center mb-4 md:mb-6 shadow-inner text-xl md:text-2xl lg:text-3xl font-black border-2 border-white/30">{selectedResident.name.charAt(0)}</div>
+                        <h5 className="text-xl md:text-2xl font-black uppercase leading-tight break-words px-2">{selectedResident.name}</h5>
+                        <p className="text-xs md:text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mt-2">Unidade {selectedResident.unit}</p>
                      </div>
                   )}
-                  <button disabled={!selectedResident} onClick={() => setStep(2)} className={`w-full py-7 rounded-[32px] font-black uppercase text-[12px] tracking-widest transition-all flex items-center justify-center gap-3 shadow-2xl ${selectedResident ? 'bg-black text-white hover:scale-[1.02] active:scale-95' : 'bg-zinc-100 text-zinc-300 cursor-not-allowed'}`}>Próximo: Inventário <ArrowRight className="w-5 h-5" /></button>
+                  <button disabled={!selectedResident} onClick={() => setStep(2)} className={`w-full py-5 md:py-6 lg:py-7 rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[12px] tracking-widest transition-all flex items-center justify-center gap-2 md:gap-3 shadow-2xl min-h-[52px] ${selectedResident ? 'bg-black text-white hover:scale-[1.02] active:scale-95 hover:shadow-2xl border-2 border-black' : 'bg-zinc-300 text-zinc-600 border-2 border-zinc-400 cursor-not-allowed'}`}><span className="whitespace-nowrap">Próximo: Inventário</span> <ArrowRight className={`w-4 h-4 md:w-5 md:h-5 flex-shrink-0 ${selectedResident ? 'text-white' : 'text-zinc-600'}`} /></button>
                </div>
             </div>
 
             {/* STEP 2: DETAILS */}
-            <div className="w-1/3 p-8 md:p-14 max-h-[90vh] overflow-y-auto custom-scrollbar">
-               <header className="flex justify-between items-start mb-12">
-                  <button onClick={() => setStep(1)} className="p-4 bg-zinc-50 rounded-3xl hover:bg-zinc-100 transition-all"><ChevronLeft className="w-6 h-6"/></button>
-                  <div className="text-right"><h4 className="text-3xl font-black uppercase tracking-tighter">O que chegou?</h4><p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] mt-1">Passo 02: Detalhamento</p></div>
+            <div className="w-1/3 p-4 md:p-6 lg:p-8 xl:p-14 flex flex-col max-h-[95vh] overflow-y-auto custom-scrollbar">
+               <header className="flex justify-between items-start gap-4 mb-6 md:mb-8 lg:mb-12 flex-shrink-0">
+                  <button onClick={() => setStep(1)} className="p-3 md:p-4 bg-zinc-50 rounded-2xl md:rounded-3xl hover:bg-zinc-100 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><ChevronLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                  <div className="text-right min-w-0 flex-1"><h4 className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tighter leading-tight">O que chegou?</h4><p className="text-xs md:text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] mt-1">Passo 02: Detalhamento</p></div>
                </header>
-               <div className="space-y-12">
+               <div className="space-y-6 md:space-y-8 lg:space-y-12 flex-1">
                   <div className="flex flex-wrap gap-2">
                      {packageCategories.map((cat: string) => (
-                       <button key={cat} onClick={() => setPackageType(cat)} className={`px-8 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-widest transition-all ${packageType === cat ? 'bg-black text-white shadow-xl scale-105' : 'bg-zinc-50 text-zinc-400 hover:bg-zinc-100'}`}>{cat}</button>
+                       <button key={cat} onClick={() => setPackageType(cat)} className={`px-4 md:px-6 lg:px-8 py-3 md:py-4 rounded-[20px] md:rounded-[24px] text-xs md:text-[10px] font-black uppercase tracking-widest transition-all min-h-[44px] ${packageType === cat ? 'bg-black text-white shadow-xl scale-105' : 'bg-zinc-50 text-zinc-400 hover:bg-zinc-100'}`}>{cat}</button>
                      ))}
-                     <button onClick={() => setIsAddingPkgCategory(!isAddingPkgCategory)} className="px-6 py-4 rounded-[24px] border border-dashed border-zinc-200 text-zinc-300 hover:bg-zinc-50 transition-all"><Plus className="w-4 h-4" /></button>
+                     <button onClick={() => setIsAddingPkgCategory(!isAddingPkgCategory)} className="px-4 md:px-6 py-3 md:py-4 rounded-[20px] md:rounded-[24px] border border-dashed border-zinc-200 text-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 min-h-[44px] flex items-center justify-center"><Plus className="w-4 h-4" /></button>
                   </div>
                   {isAddingPkgCategory && (
-                     <div className="flex items-center bg-zinc-50 rounded-[24px] p-2 border border-black/10 animate-in slide-in-from-top-2">
-                        <input type="text" value={newPkgCatName} onChange={e => setNewPkgCatName(e.target.value)} placeholder="Nova Categoria..." className="flex-1 bg-transparent px-4 font-black uppercase text-[10px] outline-none" />
-                        <button onClick={handleAddPkgCategory} className="p-3 bg-black text-white rounded-xl"><Check className="w-4 h-4"/></button>
+                     <div className="flex items-center bg-zinc-50 rounded-[20px] md:rounded-[24px] p-2 border border-black/10 animate-in slide-in-from-top-2">
+                        <input type="text" value={newPkgCatName} onChange={e => setNewPkgCatName(e.target.value)} placeholder="Nova Categoria..." className="flex-1 bg-transparent px-3 md:px-4 font-black uppercase text-xs md:text-[10px] outline-none min-h-[44px]" />
+                        <button onClick={handleAddPkgCategory} className="p-2 md:p-3 bg-black text-white rounded-xl hover:bg-zinc-800 transition-colors active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"><Check className="w-4 h-4"/></button>
                      </div>
                   )}
-                  <div className="space-y-6">
-                     <div className="flex justify-between items-center px-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest opacity-40">Inventário</label>
-                        <div className="flex items-center bg-zinc-50 rounded-2xl p-1 shadow-inner">
-                           <button onClick={() => { if(numItems > 1) handleRemoveItemRow(packageItems[packageItems.length-1].id); }} className="p-2.5 bg-white text-black rounded-xl shadow-sm hover:scale-105 transition-all"><Minus className="w-4 h-4"/></button>
-                           <span className="w-10 text-center font-black text-lg">{numItems}</span>
-                           <button onClick={handleAddItemRow} className="p-2.5 bg-white text-black rounded-xl shadow-sm hover:scale-105 transition-all"><Plus className="w-4 h-4"/></button>
+                  <div className="space-y-4 md:space-y-6">
+                     <div className="flex justify-between items-center px-2 gap-2">
+                        <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40">Inventário</label>
+                        <div className="flex items-center bg-zinc-50 rounded-xl md:rounded-2xl p-1 shadow-inner">
+                           <button onClick={() => { if(numItems > 1) handleRemoveItemRow(packageItems[packageItems.length-1].id); }} className="p-2 md:p-2.5 bg-white text-black rounded-lg md:rounded-xl shadow-sm hover:scale-105 transition-all active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"><Minus className="w-4 h-4"/></button>
+                           <span className="w-8 md:w-10 text-center font-black text-base md:text-lg">{numItems}</span>
+                           <button onClick={handleAddItemRow} className="p-2 md:p-2.5 bg-white text-black rounded-lg md:rounded-xl shadow-sm hover:scale-105 transition-all active:scale-95 min-w-[36px] min-h-[36px] flex items-center justify-center"><Plus className="w-4 h-4"/></button>
                         </div>
                      </div>
-                     <div className="space-y-4">
+                     <div className="space-y-3 md:space-y-4">
                         {packageItems.map((item: PackageItem, idx: number) => (
-                          <div key={item.id} className="p-8 bg-zinc-50 rounded-[40px] border border-transparent hover:border-black/5 transition-all space-y-5 animate-in slide-in-from-bottom-2 shadow-sm">
-                             <input type="text" placeholder="Nome do Produto..." value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} className="w-full p-5 bg-white rounded-[24px] font-black text-sm outline-none border border-transparent focus:border-black/5 shadow-inner" />
-                             <textarea placeholder="Observações..." value={item.description} onChange={e => updateItem(item.id, 'description', e.target.value)} className="w-full p-5 bg-white rounded-[24px] font-medium text-xs outline-none border border-transparent focus:border-black/5 shadow-inner resize-none h-24" />
+                          <div key={item.id} className="p-5 md:p-6 lg:p-8 bg-zinc-50 rounded-[32px] md:rounded-[40px] border border-transparent hover:border-black/5 transition-all space-y-4 md:space-y-5 animate-in slide-in-from-bottom-2 shadow-sm">
+                             <input type="text" placeholder="Nome do Produto..." value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} className="w-full p-4 md:p-5 bg-white rounded-[20px] md:rounded-[24px] font-black text-sm md:text-base outline-none border border-transparent focus:border-black/5 shadow-inner min-h-[44px]" />
+                             <textarea placeholder="Observações..." value={item.description} onChange={e => updateItem(item.id, 'description', e.target.value)} className="w-full p-4 md:p-5 bg-white rounded-[20px] md:rounded-[24px] font-medium text-xs md:text-sm outline-none border border-transparent focus:border-black/5 shadow-inner resize-none h-20 md:h-24" />
                           </div>
                         ))}
                      </div>
                   </div>
-                  <button onClick={() => setStep(3)} className="w-full py-7 bg-black text-white rounded-[32px] font-black uppercase text-[12px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">Próximo: Notificação <ArrowRight className="w-5 h-5" /></button>
+                  <button onClick={() => setStep(3)} className="w-full py-5 md:py-6 lg:py-7 bg-black text-white rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[12px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 md:gap-3 min-h-[52px]"><span className="whitespace-nowrap">Próximo: Notificação</span> <ArrowRight className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" /></button>
                </div>
             </div>
 
             {/* STEP 3: NOTIFY */}
-            <div className="w-1/3 p-8 md:p-14 flex flex-col justify-between max-h-[90vh]">
-               <div>
-                  <header className="flex justify-between items-start mb-12">
-                     <button onClick={() => setStep(2)} className="p-4 bg-zinc-50 rounded-3xl hover:bg-zinc-100 transition-all"><ChevronLeft className="w-6 h-6"/></button>
-                     <div className="text-right flex items-center gap-6">
-                        <button onClick={() => onConfirm(false)} className="text-lg font-black uppercase tracking-tight hover:text-blue-500 transition-colors active:scale-95">Salvar</button>
+            <div className="w-1/3 p-4 md:p-6 lg:p-8 xl:p-14 flex flex-col justify-between max-h-[95vh]">
+               <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  <header className="flex justify-between items-start gap-4 mb-6 md:mb-8 lg:mb-12 flex-shrink-0">
+                     <button onClick={() => setStep(2)} className="p-3 md:p-4 bg-zinc-50 rounded-2xl md:rounded-3xl hover:bg-zinc-100 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><ChevronLeft className="w-5 h-5 md:w-6 md:h-6"/></button>
+                     <div className="text-right flex items-center gap-4 md:gap-6 min-w-0 flex-1 justify-end">
+                        <button onClick={() => onConfirm(false)} className="text-base md:text-lg font-black uppercase tracking-tight hover:text-blue-500 transition-colors active:scale-95 whitespace-nowrap">Salvar</button>
                      </div>
                   </header>
-                  <div className="space-y-10">
-                     <div className="relative p-10 bg-zinc-50 rounded-[48px] border border-black/5 shadow-inner overflow-hidden">
-                        <div className="absolute top-6 left-10 flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /><span className="text-[9px] font-black text-green-600 uppercase tracking-widest">WhatsApp Business</span></div>
-                        <textarea value={packageMessage} onChange={e => setPackageMessage(e.target.value)} className="w-full h-64 mt-8 bg-transparent font-bold text-xl leading-relaxed outline-none resize-none placeholder:opacity-10 border-none" />
-                        <div className="mt-6 flex justify-end"><div className="p-3 bg-white rounded-2xl border border-black/5 flex items-center gap-2 opacity-40"><Edit2 className="w-3 h-3" /><span className="text-[8px] font-black uppercase">Editor Ativo</span></div></div>
+                  <div className="space-y-6 md:space-y-8 lg:space-y-10">
+                     <div className="relative p-6 md:p-8 lg:p-10 bg-zinc-50 rounded-[32px] md:rounded-[48px] border border-black/5 shadow-inner overflow-hidden">
+                        <div className="absolute top-4 md:top-6 left-4 md:left-6 lg:left-10 flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /><span className="text-[10px] md:text-[9px] font-black text-green-600 uppercase tracking-widest">WhatsApp Business</span></div>
+                        <textarea value={packageMessage} onChange={e => setPackageMessage(e.target.value)} className="w-full h-48 md:h-56 lg:h-64 mt-6 md:mt-8 bg-transparent font-bold text-base md:text-lg lg:text-xl leading-relaxed outline-none resize-none placeholder:opacity-10 border-none" />
+                        <div className="mt-4 md:mt-6 flex justify-end"><div className="p-2 md:p-3 bg-white rounded-xl md:rounded-2xl border border-black/5 flex items-center gap-2 opacity-40"><Edit2 className="w-3 h-3" /><span className="text-[9px] md:text-[8px] font-black uppercase">Editor Ativo</span></div></div>
                      </div>
-                     <div className="p-8 bg-zinc-900 text-white/40 rounded-[40px] flex items-center gap-6"><Bell className="w-8 h-8 opacity-20" /><p className="text-[11px] font-bold leading-relaxed">O registro será salvo permanentemente. O morador será alertado.</p></div>
+                     <div className="p-6 md:p-8 bg-zinc-900 text-white/40 rounded-[32px] md:rounded-[40px] flex items-center gap-4 md:gap-6"><Bell className="w-6 h-6 md:w-8 md:h-8 opacity-20 flex-shrink-0" /><p className="text-xs md:text-[11px] font-bold leading-relaxed">O registro será salvo permanentemente. O morador será alertado.</p></div>
                   </div>
                </div>
-               <div className="grid grid-cols-2 gap-4 mt-12">
-                  <button onClick={() => onConfirm(false)} className="py-7 bg-zinc-100 text-black rounded-[32px] font-black uppercase text-[11px] tracking-widest hover:bg-zinc-200 transition-all active:scale-95">Salvar</button>
-                  <button onClick={() => onConfirm(true)} className="py-7 bg-green-600 text-white rounded-[32px] font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-4 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"><MessageCircle className="w-5 h-5" /> Notificar</button>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8 lg:mt-12 flex-shrink-0">
+                  <button onClick={() => onConfirm(false)} className="py-5 md:py-6 lg:py-7 bg-zinc-100 text-black rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[11px] tracking-widest hover:bg-zinc-200 transition-all active:scale-95 min-h-[52px] flex items-center justify-center">Salvar</button>
+                  <button onClick={() => onConfirm(true)} className="py-5 md:py-6 lg:py-7 bg-green-600 text-white rounded-[24px] md:rounded-[32px] font-black uppercase text-xs md:text-[11px] tracking-widest flex items-center justify-center gap-3 md:gap-4 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all min-h-[52px]"><MessageCircle className="w-5 h-5 flex-shrink-0" /> <span className="whitespace-nowrap">Notificar</span></button>
                </div>
             </div>
          </div>
@@ -502,44 +508,44 @@ export const NewPackageModal = ({
 };
 
 // --- MODAL STAFF (FUNCIONÁRIOS) ---
-export const StaffFormModal = ({ isOpen, onClose, data, setData, onSave }: { isOpen: boolean, onClose: () => void, data: Partial<Staff>, setData: (d: Partial<Staff>) => void, onSave: () => void }) => {
+export const StaffFormModal = ({ isOpen, onClose, data, setData, onSave }: { isOpen: boolean, onClose: () => void, data: Partial<Staff> & { shift?: string; phone?: string; email?: string }, setData: (d: Partial<Staff> & { shift?: string; phone?: string; email?: string }) => void, onSave: () => void }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white text-black rounded-[48px] shadow-2xl p-8 md:p-12 animate-in zoom-in duration-300">
-         <header className="flex justify-between items-center mb-10">
-            <div>
-               <h4 className="text-3xl font-black uppercase tracking-tight">{data.id ? 'Editar Cadastro' : 'Novo Colaborador'}</h4>
-               <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em]">Gestão de Recursos Humanos</p>
+      <div className="relative w-full max-w-lg bg-white text-black rounded-[32px] md:rounded-[48px] shadow-2xl p-6 md:p-8 lg:p-12 animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+         <header className="flex justify-between items-start gap-4 mb-6 md:mb-8 lg:mb-10">
+            <div className="min-w-0 flex-1">
+               <h4 className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tight leading-tight">{data.id ? 'Editar Cadastro' : 'Novo Colaborador'}</h4>
+               <p className="text-xs md:text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Gestão de Recursos Humanos</p>
             </div>
-            <button onClick={onClose} className="p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all"><X className="w-5 h-5"/></button>
+            <button onClick={onClose} className="flex-shrink-0 p-2.5 md:p-3 bg-zinc-100 rounded-2xl hover:bg-zinc-200 transition-all active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-5 h-5"/></button>
          </header>
          
-         <div className="space-y-6">
+         <div className="space-y-5 md:space-y-6">
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Nome Completo</label>
+               <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Nome Completo</label>
                <div className="relative">
-                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                 <User className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                  <input 
                     type="text" 
                     value={data.name || ''} 
                     onChange={e => setData({...data, name: e.target.value})} 
-                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border focus:border-black/10" 
+                    className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-4 bg-zinc-50 rounded-2xl font-bold text-sm md:text-base outline-none border focus:border-black/10 min-h-[44px]" 
                     placeholder="Nome do Funcionário" 
                  />
                </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Cargo</label>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Cargo</label>
                   <div className="relative">
-                     <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                     <Briefcase className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                      <select 
                         value={data.role || ''} 
                         onChange={e => setData({...data, role: e.target.value})}
-                        className="w-full pl-12 pr-8 py-4 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border focus:border-black/10 appearance-none"
+                        className="w-full pl-10 md:pl-12 pr-7 md:pr-8 py-3 md:py-4 bg-zinc-50 rounded-2xl font-bold text-sm md:text-base outline-none border focus:border-black/10 appearance-none min-h-[44px]"
                      >
                         <option value="">Selecione...</option>
                         <option value="Porteiro">Porteiro</option>
@@ -549,15 +555,15 @@ export const StaffFormModal = ({ isOpen, onClose, data, setData, onSave }: { isO
                         <option value="Manutenção">Manutenção</option>
                         <option value="Jardineiro">Jardineiro</option>
                      </select>
-                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                     <ChevronDown className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                   </div>
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Turno</label>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Turno</label>
                   <select 
                      value={data.shift || ''} 
                      onChange={e => setData({...data, shift: e.target.value as any})}
-                     className="w-full px-4 py-4 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border focus:border-black/10 appearance-none"
+                     className="w-full px-3 md:px-4 py-3 md:py-4 bg-zinc-50 rounded-2xl font-bold text-sm md:text-base outline-none border focus:border-black/10 appearance-none min-h-[44px]"
                   >
                      <option value="Comercial">Comercial</option>
                      <option value="Manhã">Manhã</option>
@@ -569,13 +575,13 @@ export const StaffFormModal = ({ isOpen, onClose, data, setData, onSave }: { isO
             </div>
 
             <div className="space-y-2">
-               <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Status Operacional</label>
+               <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Status Operacional</label>
                <div className="flex gap-2">
                   {['Ativo', 'Férias', 'Licença'].map(status => (
                      <button 
                         key={status}
                         onClick={() => setData({...data, status: status as any})}
-                        className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${data.status === status ? (status === 'Ativo' ? 'bg-green-500 text-white border-green-500' : status === 'Férias' ? 'bg-amber-500 text-white border-amber-500' : 'bg-red-500 text-white border-red-500') : 'bg-zinc-50 border-transparent text-zinc-400 hover:bg-zinc-100'}`}
+                        className={`flex-1 py-3 rounded-xl text-xs md:text-[10px] font-black uppercase tracking-widest transition-all border min-h-[44px] ${data.status === status ? (status === 'Ativo' ? 'bg-green-500 text-white border-green-500' : status === 'Férias' ? 'bg-amber-500 text-white border-amber-500' : 'bg-red-500 text-white border-red-500') : 'bg-zinc-50 border-transparent text-zinc-400 hover:bg-zinc-100'}`}
                      >
                         {status}
                      </button>
@@ -585,24 +591,24 @@ export const StaffFormModal = ({ isOpen, onClose, data, setData, onSave }: { isO
 
             <div className="pt-4 border-t border-zinc-100 space-y-4">
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Telefone</label>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Telefone</label>
                   <div className="relative">
-                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                     <input type="text" value={data.phone || ''} onChange={e => setData({...data, phone: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border focus:border-black/10" placeholder="(11) 99999-9999" />
+                     <Phone className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                     <input type="text" value={data.phone || ''} onChange={e => setData({...data, phone: e.target.value})} className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-4 bg-zinc-50 rounded-2xl font-bold text-sm md:text-base outline-none border focus:border-black/10 min-h-[44px]" placeholder="(11) 99999-9999" />
                   </div>
                </div>
                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Email</label>
+                  <label className="text-xs md:text-[10px] font-black uppercase tracking-widest opacity-40 ml-2">Email</label>
                   <div className="relative">
-                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                     <input type="email" value={data.email || ''} onChange={e => setData({...data, email: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-zinc-50 rounded-2xl font-bold text-sm outline-none border focus:border-black/10" placeholder="func@condominio.com" />
+                     <Mail className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                     <input type="email" value={data.email || ''} onChange={e => setData({...data, email: e.target.value})} className="w-full pl-10 md:pl-12 pr-4 py-3 md:py-4 bg-zinc-50 rounded-2xl font-bold text-sm md:text-base outline-none border focus:border-black/10 min-h-[44px]" placeholder="func@condominio.com" />
                   </div>
                </div>
             </div>
 
-            <div className="pt-6">
-               <button onClick={onSave} disabled={!data.name || !data.role} className="w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <Save className="w-4 h-4" /> Salvar Colaborador
+            <div className="pt-4 md:pt-6">
+               <button onClick={onSave} disabled={!data.name || !data.role} className="w-full py-4 md:py-5 bg-black text-white rounded-[20px] md:rounded-[24px] font-black uppercase text-xs md:text-[11px] tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed min-h-[52px]">
+                  <Save className="w-4 h-4 flex-shrink-0" /> <span className="whitespace-nowrap">Salvar Colaborador</span>
                </button>
             </div>
          </div>

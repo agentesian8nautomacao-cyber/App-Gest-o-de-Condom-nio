@@ -22,7 +22,7 @@ const NotesView: React.FC<NotesViewProps> = ({
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex justify-between items-center">
         <h3 className="text-3xl font-black uppercase tracking-tighter">Bloco de Notas</h3>
-        <button onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} className="px-6 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform"><Plus className="w-4 h-4 inline mr-2" /> Criar Nota</button>
+        <button onClick={() => { setEditingNoteId(null); setNewNoteContent(''); setIsNewNoteModalOpen(true); }} className="px-6 py-3 rounded-full text-[10px] font-black uppercase shadow-lg hover:scale-105 transition-transform flex items-center gap-2" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-color)' }}><Plus className="w-4 h-4" /> Criar Nota</button>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {allNotes.map(note => (
