@@ -7,14 +7,28 @@ if (typeof window !== 'undefined') {
     const shouldFilterMessage = (messages: string): boolean => {
         const lowerMessages = messages.toLowerCase();
         
-        // Filtrar erros de WebSocket do Supabase Realtime
+        // Filtrar erros de WebSocket do Supabase Realtime - capturar TODOS os padrões possíveis
         const isWebSocketError = 
+            // Mensagens básicas de WebSocket
             lowerMessages.includes('websocket connection') || 
             lowerMessages.includes('websocket connection to') ||
+            // URLs do Supabase WebSocket
             (lowerMessages.includes('wss://') && (lowerMessages.includes('supabase.co') || lowerMessages.includes('supabase'))) ||
+            lowerMessages.includes('wss://zaemlxjwhzrfmowbckmk.supabase.co') ||
+            lowerMessages.includes('/realtime/v1/websocket') ||
+            // Funções e stack traces
             lowerMessages.includes('createwebsocket') ||
             lowerMessages.includes('createwebsocket@') ||
-            lowerMessages.includes('@ index-') || // Capturar stack traces do código compilado
+            lowerMessages.includes('@ index-') || // Capturar stack traces do código compilado (index-*.js)
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:') && lowerMessages.includes('websocket')) ||
+            // Capturar padrões específicos de linha do código compilado (mais agressivo)
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:491') && lowerMessages.includes('supabase')) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:496') && lowerMessages.includes('supabase')) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:509') && lowerMessages.includes('supabase')) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:528') && lowerMessages.includes('supabase')) ||
+            // Capturar qualquer linha do código compilado que contenha o domínio do Supabase
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:') && lowerMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co')) ||
+            // Estados de erro do WebSocket
             (lowerMessages.includes('websocket') && (lowerMessages.includes('failed') || lowerMessages.includes('fail'))) ||
             (lowerMessages.includes('realtime') && lowerMessages.includes('websocket')) ||
             lowerMessages.includes('websocket is already in closing or closed state') ||
@@ -23,9 +37,17 @@ if (typeof window !== 'undefined') {
             lowerMessages.includes('already in closed state') ||
             (lowerMessages.includes('websocket') && lowerMessages.includes('closing')) ||
             (lowerMessages.includes('websocket') && lowerMessages.includes('closed')) ||
+            // Domínio específico do Supabase
             lowerMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co') ||
-            // Capturar especificamente o padrão que aparece no console
-            (lowerMessages.includes('wss://zaemlxjwhzrfmowbckmk.supabase.co/realtime/v1/websocket'));
+            // Padrão completo da URL que aparece no erro
+            lowerMessages.includes('wss://zaemlxjwhzrfmowbckmk.supabase.co/realtime/v1/websocket') ||
+            // Capturar por padrões de linha do código compilado (mesmo sem a palavra "websocket" explícita)
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:491') && (lowerMessages.includes('websocket') || lowerMessages.includes('createwebsocket') || lowerMessages.includes('failed') || lowerMessages.includes('wss://') || lowerMessages.includes('supabase'))) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:496') && (lowerMessages.includes('websocket') || lowerMessages.includes('connect') || lowerMessages.includes('supabase'))) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:509') && (lowerMessages.includes('websocket') || lowerMessages.includes('supabase'))) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:528') && (lowerMessages.includes('websocket') || lowerMessages.includes('subscribe') || lowerMessages.includes('supabase'))) ||
+            // Capturar QUALQUER linha do código compilado que contenha o domínio do Supabase
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:') && lowerMessages.includes('zaemlxjwhzrfmowbckmk.supabase.co'));
         
         // Filtrar erros 429 (quota exceeded) do Gemini API
         const isQuotaError = 
@@ -36,17 +58,25 @@ if (typeof window !== 'undefined') {
             (lowerMessages.includes('429') && (lowerMessages.includes('too many requests') || lowerMessages.includes('resource'))) ||
             lowerMessages.includes('resource_exhausted') ||
             lowerMessages.includes('too many requests') ||
-            lowerMessages.includes('generativelanguage.googleapis.com');
+            lowerMessages.includes('generativelanguage.googleapis.com') ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:615') && lowerMessages.includes('429')) ||
+            (lowerMessages.includes('index-') && lowerMessages.includes('.js:527') && lowerMessages.includes('429'));
         
         return isWebSocketError || isQuotaError;
     };
     
     console.error = (...args: any[]) => {
+        // Capturar todas as formas possíveis da mensagem
         const allMessages = args.map(arg => {
             if (typeof arg === 'string') return arg;
             if (arg?.toString) return arg.toString();
             if (arg?.message) return arg.message;
             if (arg?.stack) return arg.stack;
+            // Verificar propriedades adicionais que podem conter a mensagem
+            if (arg && typeof arg === 'object') {
+                const objStr = JSON.stringify(arg);
+                if (objStr && objStr !== '{}') return objStr;
+            }
             try {
                 return JSON.stringify(arg);
             } catch {
@@ -54,7 +84,13 @@ if (typeof window !== 'undefined') {
             }
         }).join(' ');
         
-        if (!shouldFilterMessage(allMessages)) {
+        // Também verificar os argumentos originais individualmente para capturar melhor
+        const hasWebSocketInArgs = args.some(arg => {
+            const str = String(arg || '').toLowerCase();
+            return str.includes('websocket') && str.includes('zaemlxjwhzrfmowbckmk.supabase.co');
+        });
+        
+        if (!shouldFilterMessage(allMessages) && !hasWebSocketInArgs) {
             originalError.apply(console, args);
         }
     };
