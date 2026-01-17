@@ -90,8 +90,21 @@ if (typeof window !== 'undefined') {
             (allMessages.includes('websocket') && allMessages.includes('closing')) ||
             (allMessages.includes('websocket') && allMessages.includes('closed'));
 
-        if (isWebSocketError) {
-            // Não logar - são erros esperados e não críticos quando Realtime não está configurado
+        // Filtrar erros 429 (quota exceeded) do Gemini API - já são tratados e mostrados ao usuário
+        const isQuotaError = 
+            allMessages.includes('error in handlesendmessage') ||
+            allMessages.includes('exceeded your current quota') ||
+            allMessages.includes('quota exceeded') ||
+            allMessages.includes('429') ||
+            allMessages.includes('resource_exhausted') ||
+            allMessages.includes('resouce_exhausted') ||
+            (allMessages.includes('code') && allMessages.includes('429')) ||
+            (allMessages.includes('apierror') && allMessages.includes('429')) ||
+            allMessages.includes('generativelanguage.googleapis.com') ||
+            (allMessages.includes('gemini') && allMessages.includes('429'));
+
+        if (isWebSocketError || isQuotaError) {
+            // Não logar - são erros esperados e não críticos
             return;
         }
         originalError.apply(console, args);

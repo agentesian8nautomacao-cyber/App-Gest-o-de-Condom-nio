@@ -220,8 +220,17 @@ ${voiceSettings.style === 'serious'
         return [...filtered, modelMsg];
       });
     } catch (error: any) {
+      // Verificar se é erro 429 (quota exceeded) antes de qualquer log
+      const isQuotaError = error?.error?.code === 429 || 
+                          error?.code === 429 || 
+                          error?.status === 'RESOURCE_EXHAUSTED' ||
+                          error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+                          (error?.error?.message && typeof error.error.message === 'string' && error.error.message.includes('exceeded your current quota')) ||
+                          (error?.message && typeof error.message === 'string' && error.message.includes('exceeded your current quota')) ||
+                          (error?.error?.message && typeof error.error.message === 'string' && error.error.message.includes('Quota exceeded'));
+      
       // Não logar erros de quota (429) no console - já estão sendo tratados e mostrados ao usuário
-      if (!(error?.error?.code === 429) && !(error?.code === 429) && !(error?.status === 'RESOURCE_EXHAUSTED')) {
+      if (!isQuotaError) {
         console.error('Error in handleSendMessage:', error);
       }
       
