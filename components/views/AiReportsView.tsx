@@ -282,8 +282,7 @@ const AiReportsView: React.FC<AiReportsViewProps> = ({
       }
       
       // Erro final - usar mensagem formatada
-      const cleanMessage = formattedMessage 
-        : 'Erro ao gerar relatório. Por favor, tente novamente.';
+      const cleanMessage = formattedMessage || 'Erro ao gerar relatório. Por favor, tente novamente.';
       
       // Limpar qualquer JSON que possa estar no conteúdo
       let finalMessage = cleanMessage;
